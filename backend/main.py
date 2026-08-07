@@ -128,7 +128,15 @@ def get_user_match(user_id: int, db: Session = Depends(get_db)):
     mentee = db.query(models.User).filter(models.User.id == match.mentee_id).first()
     
     partner = mentee if user.is_mentor else mentor
-        
+
+    # 왜 이 둘이 이어졌는지 한 줄 설명 (match_reason.py)
+    reason = ""
+    detail = {}
+    if mentor and mentee:
+        from match_reason import build_reason, build_detail
+        reason = build_reason(mentor, mentee)
+        detail = build_detail(mentor, mentee)
+
     return {
         "status": "matched",
         "match_id": match.id,
@@ -139,7 +147,9 @@ def get_user_match(user_id: int, db: Session = Depends(get_db)):
         "partner_phone": partner.phone if partner else "",
         "partner_role": "멘티 (신입생)" if user.is_mentor else "멘토 (재학생)",
         "partner_mbti": partner.mbti if partner else "",
-        "partner_hobbies": partner.hobbies if partner else ""
+        "partner_hobbies": partner.hobbies if partner else "",
+        "match_reason": reason,
+        "match_detail": detail
     }
 
 @app.post("/api/missions")

@@ -211,7 +211,8 @@ function switchScreen(screenId) {
     }
 }
 
-function renderProfile() {
+// matchData는 /api/users/{id}/match 응답. 매칭 이유를 매칭 상태 바로 아래에 붙인다.
+function renderProfile(matchData) {
     const profileEl = document.getElementById('profile-info');
     if (!profileEl) return;
 
@@ -219,6 +220,11 @@ function renderProfile() {
         profileEl.innerHTML = '<p>프로필 정보를 불러올 수 없습니다.</p>';
         return;
     }
+
+    const matched = currentUserProfile.match_status === 'matched';
+    const reason = (matched && matchData && matchData.match_reason)
+        ? `<p class="match-reason"><span class="match-reason-label">이렇게 이어졌어요</span>${matchData.match_reason}</p>`
+        : '';
 
     profileEl.innerHTML = `
         <h3>${currentUserProfile.name}님의 프로필</h3>
@@ -228,11 +234,13 @@ function renderProfile() {
         <p><strong>취미:</strong> ${currentUserProfile.hobbies}</p>
         <p><strong>주거 형태:</strong> ${currentUserProfile.living_type}</p>
         <p><strong>역할:</strong> ${currentUserProfile.is_mentor ? '멘토(재학생)' : '멘티(신입생)'}</p>
-        <p><strong>매칭 상태:</strong> ${currentUserProfile.match_status === 'matched' ? '매칭됨' : '대기중'}</p>
+        <p><strong>매칭 상태:</strong> ${matched ? '매칭됨' : '대기중'}</p>
+        ${reason}
     `;
 }
 
 // 내 프로필 화면 = 내 정보 + 매칭 상대 정보
+// 매칭 정보를 먼저 받아야 매칭 이유를 내 카드에 그릴 수 있다.
 async function loadProfileScreen() {
     if (!currentUserId) return;
 
@@ -244,17 +252,25 @@ async function loadProfileScreen() {
             currentUserProfile = null;
         }
     }
-    renderProfile();
-    await renderPartnerProfile();
+
+    let matchData = null;
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/users/${currentUserId}/match`);
+        matchData = await res.json();
+    } catch (e) {
+        matchData = null;
+    }
+
+    renderProfile(matchData);
+    renderPartnerProfile(matchData);
 }
 
-async function renderPartnerProfile() {
+function renderPartnerProfile(data) {
     const el = document.getElementById('partner-info');
     if (!el) return;
 
     try {
-        const res = await fetch(`${API_BASE_URL}/api/users/${currentUserId}/match`);
-        const data = await res.json();
+        if (!data) throw new Error('no data');
 
         if (data.status === 'unmatched') {
             currentMatchId = null;
@@ -271,6 +287,7 @@ async function renderPartnerProfile() {
         document.getElementById('btn-mission').style.display = 'inline-block';
         if (typeof saveSession === 'function') saveSession();
 
+        // 매칭 이유는 내 프로필 카드(매칭 상태 아래)에 한 번만 보여준다
         el.innerHTML = `
             <h3>나와 매칭된 상대</h3>
             <p class="partner-name">${data.partner_name}</p>
@@ -278,7 +295,6 @@ async function renderPartnerProfile() {
             <p><strong>MBTI:</strong> ${data.partner_mbti}</p>
             <p><strong>취미:</strong> ${data.partner_hobbies}</p>
             <p><strong>전화번호:</strong> ${data.partner_phone}</p>
-            <p><strong>매칭 점수:</strong> ${data.score}</p>
         `;
     } catch (e) {
         el.innerHTML = '<h3>매칭 상대</h3><p>매칭 정보를 가져오는 데 실패했습니다.</p>';

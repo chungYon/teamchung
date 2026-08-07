@@ -496,6 +496,25 @@ select:focus {
     color: var(--muted, #8f2d5c);
 }
 
+/* 왜 이 둘이 매칭됐는지 한 줄 설명 */
+.match-reason {
+    margin: 0 0 14px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(255, 111, 191, 0.5);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--text-color);
+}
+
+.match-reason-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--primary-hover);
+    margin-bottom: 4px;
+}
+
 @media (max-width: 760px) {
     .profile-grid {
         grid-template-columns: 1fr;
