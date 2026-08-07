@@ -128,13 +128,13 @@ body {
     -webkit-text-fill-color: transparent;
 }
 
-<<<<<<< HEAD .nav-links {
+.nav-links {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-=======>>>>>>>master .nav-links button {
+.nav-links button {
     background: rgba(255, 255, 255, 0.75);
     color: var(--text-color);
     border: 1px solid var(--glass-border);
