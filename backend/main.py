@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import FileResponse
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 import models
@@ -9,6 +10,7 @@ import schemas
 from database import engine, get_db
 from mission_data import MISSIONS
 from mission_service import get_match_progress, get_unlocked_islands
+from security import decrypt_value, encrypt_value
 import json
 from pydantic import BaseModel
 from typing import Optional
