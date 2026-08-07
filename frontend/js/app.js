@@ -58,9 +58,9 @@ const HOBBIES = {
 // 취미 체크박스 렌더링
 window.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById('hobbies-container');
-    if(container) {
+    if (container) {
         let html = '';
-        for(const [cat, items] of Object.entries(HOBBIES)) {
+        for (const [cat, items] of Object.entries(HOBBIES)) {
             html += `<div style="flex: 1 1 120px;">
                         <strong style="color:var(--primary); font-size:0.9rem;">${cat}</strong>
                         <div style="display:flex; flex-direction:column; gap:5px; margin-top:5px; font-size:0.85rem;">`;
@@ -120,15 +120,15 @@ async function fetchUsers() {
     try {
         const response = await fetch(`${API_BASE_URL}/api/users`);
         const data = await response.json();
-        
+
         const tbody = document.getElementById('users-body');
         tbody.innerHTML = '';
-        
+
         if (data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6">가입된 회원이 없습니다.</td></tr>`;
             return;
         }
-        
+
         data.forEach(user => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -141,7 +141,7 @@ async function fetchUsers() {
             `;
             tbody.appendChild(tr);
         });
-    } catch(e) {
+    } catch (e) {
         console.error(e);
     }
 }
@@ -160,6 +160,7 @@ function applyNavForRole() {
     show('btn-score', loggedIn);
     show('btn-matching', loggedIn && isAdmin);
     show('btn-users', loggedIn && isAdmin);
+    show('btn-admin-mission', loggedIn && isAdmin);
     show('btn-admin-match', loggedIn && isAdmin);
     show('btn-logout', loggedIn);
 
@@ -193,20 +194,20 @@ function switchScreen(screenId) {
     if (btn) btn.classList.add('active');
 
     // Auto load data depending on screen
-    if(screenId === 'profile') {
+    if (screenId === 'profile') {
         loadProfileScreen();
-    } else if(screenId === 'matching' && (currentUserId || isAdmin)) {
+    } else if (screenId === 'matching' && (currentUserId || isAdmin)) {
         fetchMyMatch();
-    } else if(screenId === 'mission') {
+    } else if (screenId === 'mission') {
         if (!currentMatchId) {
             alert('아직 매칭이 완료되지 않았습니다. 내 프로필에서 매칭 상태를 확인해 주세요.');
             switchScreen(isAdmin ? 'matching' : 'profile');
             return;
         }
         initializeMissionBoard();
-    } else if(screenId === 'score') {
+    } else if (screenId === 'score') {
         fetchLeaderboard();
-    } else if(screenId === 'users') {
+    } else if (screenId === 'users') {
         fetchUsers();
     }
 }
@@ -326,7 +327,7 @@ async function login() {
             isAdmin = data.is_admin === true;
             msgEl.innerText = "로그인 성공!";
             msgEl.style.color = "#34d399";
-            
+
             document.getElementById('btn-mission').style.display = 'none';
             document.getElementById('admin-match-result').style.display = 'none';
             applyNavForRole();
@@ -367,12 +368,12 @@ async function register() {
     const living = document.getElementById('reg-living').value;
     const role = document.getElementById('reg-role').value === "true";
     const phone = document.getElementById('reg-phone').value;
-    
+
     // 선택된 취미들 수집
     const hobbies = Array.from(document.querySelectorAll('.hobby-checkbox:checked'))
-                        .map(cb => cb.value)
-                        .join(',');
-    
+        .map(cb => cb.value)
+        .join(',');
+
     const msgEl = document.getElementById('reg-msg');
 
     try {
@@ -432,13 +433,13 @@ async function fetchAdminMatches() {
     try {
         const response = await fetch(`${API_BASE_URL}/api/admin/matches`);
         const matches = await response.json();
-        
+
         const usersResp = await fetch(`${API_BASE_URL}/api/users`);
         const users = await usersResp.json();
-        
+
         const unmatchedMentors = users.filter(u => u.is_mentor && u.match_status !== 'matched');
         const unmatchedMentees = users.filter(u => !u.is_mentor && u.match_status !== 'matched');
-        
+
         let html = `
             <div style="background:rgba(255,255,255,0.8); padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid var(--primary);">
                 <h3 style="margin-top:0; color:var(--primary);">📊 매칭 현황 요약</h3>
@@ -449,13 +450,13 @@ async function fetchAdminMatches() {
                    <span style="font-size:0.85rem; color:#8f2d5c;">${unmatchedMentees.length > 0 ? '(' + unmatchedMentees.map(u => u.name).join(', ') + ')' : ''}</span></p>
             </div>
         `;
-        
+
         if (matches.length === 0) {
             html += `<p>현재 성사된 매칭이 없습니다.</p>`;
             infoEl.innerHTML = html;
             return;
         }
-        
+
         html += `<h3>전체 매칭 결과 리스트</h3><div style="display:flex; flex-direction:column; gap:15px; margin-top:15px;">`;
         matches.forEach(m => {
             html += `
@@ -474,7 +475,7 @@ async function fetchAdminMatches() {
         });
         html += `</div>`;
         infoEl.innerHTML = html;
-        
+
     } catch (e) {
         infoEl.innerHTML = `<p style="color:var(--primary);">매칭 목록을 가져오는 데 실패했습니다.</p>`;
     }
@@ -490,11 +491,11 @@ async function fetchMyMatch() {
         return;
     }
     if (!currentUserId) return;
-    
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/users/${currentUserId}/match`);
         const data = await response.json();
-        
+
         if (data.status === "unmatched") {
             currentMatchId = null;
             document.getElementById('btn-mission').style.display = 'none';
@@ -524,12 +525,12 @@ async function adminAssignMission() {
     const title = document.getElementById('mission-title').value;
     const desc = document.getElementById('mission-desc').value;
     const msgEl = document.getElementById('mission-assign-msg');
-    
-    if(!mid || !title || !desc) {
+
+    if (!mid || !title || !desc) {
         msgEl.innerText = "모두 입력해주세요";
         return;
     }
-    
+
     try {
         await fetch(`${API_BASE_URL}/api/missions`, {
             method: 'POST',
@@ -845,15 +846,15 @@ async function fetchLeaderboard() {
     try {
         const response = await fetch(`${API_BASE_URL}/api/leaderboard`);
         const data = await response.json();
-        
+
         const tbody = document.getElementById('leaderboard-body');
         tbody.innerHTML = '';
-        
+
         if (data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="4">리더보드 데이터가 없습니다. 매칭 및 미션 제출을 완료해 주세요!</td></tr>`;
             return;
         }
-        
+
         data.forEach(item => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -864,7 +865,89 @@ async function fetchLeaderboard() {
             `;
             tbody.appendChild(tr);
         });
-    } catch(e) {
+    } catch (e) {
         console.error(e);
+    }
+}
+
+// ---------- 관리자 전용 기능 (미션 승인 & 기한) ----------
+async function fetchAdminPendingMissions() {
+    const list = document.getElementById('admin-pending-list');
+    list.innerHTML = '<div style="color:var(--muted);">불러오는 중...</div>';
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/admin/missions/pending`);
+        const missions = await res.json();
+
+        let html = '';
+        if (missions.length === 0) {
+            html = '<div style="color:var(--muted);">승인 대기 중인 미션이 없습니다.</div>';
+        } else {
+            missions.forEach(m => {
+                html += `
+                <div class="card" style="display:flex; justify-content:space-between; align-items:center; border:1px solid #f59e0b; background:rgba(245, 158, 11, 0.05); padding:15px; border-radius:12px;">
+                    <div>
+                        <div style="font-weight:bold; color:var(--text-color); margin-bottom:5px;">[${m.team_name}] ${m.title}</div>
+                        <a href="/uploads/${m.proof_url}" target="_blank" style="color:var(--primary); font-size:12px; text-decoration:underline;">제출된 사진 보기</a>
+                        <div style="font-size:11px; color:var(--muted); margin-top:5px;">제출일: ${new Date(m.submitted_at).toLocaleString()}</div>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-primary" onclick="approveAdminMission(${m.mission_db_id})" style="padding:8px 15px; min-width:auto; width:auto; border-radius:8px;">승인</button>
+                        <button class="btn-secondary" onclick="rejectAdminMission(${m.mission_db_id})" style="padding:8px 15px; min-width:auto; width:auto; border-radius:8px;">반려</button>
+                    </div>
+                </div>
+                `;
+            });
+        }
+        list.innerHTML = html;
+
+        const setRes = await fetch(`${API_BASE_URL}/api/admin/settings`);
+        const settings = await setRes.json();
+        if (settings.deadline) {
+            document.getElementById('admin-deadline-input').value = settings.deadline.substring(0, 16);
+        }
+    } catch (e) {
+        list.innerHTML = '<div style="color:red;">목록을 불러오지 못했습니다.</div>';
+    }
+}
+
+async function approveAdminMission(id) {
+    if (!confirm('승인하시겠습니까? (미션 점수가 즉시 부여됩니다)')) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/admin/missions/${id}/approve`, { method: 'POST' });
+        const data = await res.json();
+        alert(data.message || (res.ok ? '승인 완료' : '오류'));
+        if (res.ok) fetchAdminPendingMissions();
+    } catch (e) {
+        alert('승인 중 오류 발생');
+    }
+}
+
+async function rejectAdminMission(id) {
+    if (!confirm('반려하시겠습니까? (유저가 다시 사진을 올려야 합니다)')) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/admin/missions/${id}/reject`, { method: 'POST' });
+        const data = await res.json();
+        alert(data.message || (res.ok ? '반려 완료' : '오류'));
+        if (res.ok) fetchAdminPendingMissions();
+    } catch (e) {
+        alert('반려 중 오류 발생');
+    }
+}
+
+async function setDeadline() {
+    const val = document.getElementById('admin-deadline-input').value;
+    const dateStr = val ? new Date(val).toISOString() : null;
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/admin/settings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ deadline: dateStr })
+        });
+        if (res.ok) {
+            document.getElementById('admin-deadline-msg').textContent = '기한이 저장되었습니다.';
+            setTimeout(() => document.getElementById('admin-deadline-msg').textContent = '', 3000);
+        }
+    } catch (e) {
+        alert('기한 변경 실패');
     }
 }
