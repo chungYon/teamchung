@@ -123,3 +123,4 @@ DB/ORM: SQLite(mentoring.db) + SQLAlchemy ORM (단, sqlalchemy 패키지 자체�
 
 - **깃허브 링크 제출 이후 추가 커밋이 발견되면 무효 처리된다.** 08:40 이후 커밋 금지
 - 발표자료 제출이 늦은 팀부터 역순으로 발표 순서가 배정된다
+

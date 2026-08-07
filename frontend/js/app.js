@@ -149,6 +149,30 @@ async function fetchUsers() {
     }
 }
 
+// 로그인 여부/역할에 따라 상단 메뉴를 켜고 끈다.
+// 일반 회원: 내 프로필 / 미션 보드 / 리더보드
+// 관리자: 매칭 현황 / 회원 목록 / 리더보드
+function applyNavForRole() {
+    const loggedIn = !!(currentUserId || isAdmin);
+    const show = (id, on) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = on ? 'inline-block' : 'none';
+    };
+
+    show('btn-profile', loggedIn && !isAdmin);
+    show('btn-matching', loggedIn && isAdmin);
+    show('btn-users', loggedIn && isAdmin);
+    show('btn-admin-match', loggedIn && isAdmin);
+
+    const assign = document.getElementById('assign-mission-admin');
+    if (assign) assign.style.display = isAdmin ? 'block' : 'none';
+
+    const btnRefresh = document.getElementById('btn-refresh-match');
+    if (btnRefresh) {
+        btnRefresh.innerText = isAdmin ? '매칭 현황 새로고침' : '내 매칭 정보 새로고침';
+    }
+}
+
 function switchScreen(screenId) {
     if (screenId === 'login' && currentUserId) {
         screenId = 'profile';
@@ -170,12 +194,14 @@ function switchScreen(screenId) {
     if (btn) btn.classList.add('active');
 
     // Auto load data depending on screen
-    if(screenId === 'matching' && (currentUserId || isAdmin)) {
+    if(screenId === 'profile') {
+        loadProfileScreen();
+    } else if(screenId === 'matching' && (currentUserId || isAdmin)) {
         fetchMyMatch();
     } else if(screenId === 'mission') {
         if (!currentMatchId) {
-            alert('아직 매칭이 완료되지 않았습니다. 먼저 매칭 현황을 확인해 주세요.');
-            switchScreen('matching');
+            alert('아직 매칭이 완료되지 않았습니다. 내 프로필에서 매칭 상태를 확인해 주세요.');
+            switchScreen(isAdmin ? 'matching' : 'profile');
             return;
         }
         initializeMissionBoard();
@@ -207,23 +233,72 @@ function renderProfile() {
     `;
 }
 
+// 내 프로필 화면 = 내 정보 + 매칭 상대 정보
+async function loadProfileScreen() {
+    if (!currentUserId) return;
+
+    if (!currentUserProfile) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/users/${currentUserId}`);
+            currentUserProfile = await res.json();
+        } catch (e) {
+            currentUserProfile = null;
+        }
+    }
+    renderProfile();
+    await renderPartnerProfile();
+}
+
+async function renderPartnerProfile() {
+    const el = document.getElementById('partner-info');
+    if (!el) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/users/${currentUserId}/match`);
+        const data = await res.json();
+
+        if (data.status === 'unmatched') {
+            currentMatchId = null;
+            document.getElementById('btn-mission').style.display = 'none';
+            el.innerHTML = `
+                <h3>매칭 상대</h3>
+                <p>아직 매칭되지 않았습니다.</p>
+                <p class="partner-wait">관리자가 매칭을 실행하면 이곳에 상대 정보가 표시됩니다.</p>
+            `;
+            return;
+        }
+
+        currentMatchId = data.match_id;
+        document.getElementById('btn-mission').style.display = 'inline-block';
+        if (typeof saveSession === 'function') saveSession();
+
+        el.innerHTML = `
+            <h3>나와 매칭된 상대</h3>
+            <p class="partner-name">${data.partner_name}</p>
+            <p><strong>역할:</strong> ${data.partner_role}</p>
+            <p><strong>MBTI:</strong> ${data.partner_mbti}</p>
+            <p><strong>취미:</strong> ${data.partner_hobbies}</p>
+            <p><strong>전화번호:</strong> ${data.partner_phone}</p>
+            <p><strong>매칭 점수:</strong> ${data.score}</p>
+        `;
+    } catch (e) {
+        el.innerHTML = '<h3>매칭 상대</h3><p>매칭 정보를 가져오는 데 실패했습니다.</p>';
+    }
+}
+
 function logout() {
     currentUserId = null;
     currentMatchId = null;
     isAdmin = false;
     currentUserProfile = null;
     clearSession();
-    document.getElementById('btn-matching').style.display = 'none';
+    applyNavForRole();
     document.getElementById('btn-mission').style.display = 'none';
-    document.getElementById('btn-users').style.display = 'none';
-    document.getElementById('btn-admin-match').style.display = 'none';
-    document.getElementById('assign-mission-admin').style.display = 'none';
-    
-    const btnRefresh = document.getElementById('btn-refresh-match');
-    if (btnRefresh) {
-        btnRefresh.innerText = "내 매칭 정보 새로고침";
-    }
-    
+
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+    document.getElementById('login-msg').innerText = '';
+
     switchScreen('login');
 }
 
@@ -253,31 +328,23 @@ async function login() {
             msgEl.innerText = "로그인 성공!";
             msgEl.style.color = "#34d399";
             
-            // show common 퀵탭
-            document.getElementById('btn-matching').style.display = 'inline-block';
             document.getElementById('btn-mission').style.display = 'none';
-            document.getElementById('btn-users').style.display = isAdmin ? 'inline-block' : 'none';
-            document.getElementById('btn-admin-match').style.display = isAdmin ? 'inline-block' : 'none';
-            document.getElementById('assign-mission-admin').style.display = isAdmin ? 'block' : 'none';
             document.getElementById('admin-match-result').style.display = 'none';
-            
-            const btnRefresh = document.getElementById('btn-refresh-match');
-            if (btnRefresh) {
-                btnRefresh.innerText = isAdmin ? "매칭 현황 새로고침" : "내 매칭 정보 새로고침";
+            applyNavForRole();
+
+            if (isAdmin) {
+                saveSession();
+                switchScreen('matching');
+                return;
             }
 
-            if (!isAdmin) {
-                const userRes = await fetch(`${API_BASE_URL}/users/${currentUserId}`);
-                const userData = await userRes.json();
-                currentUserProfile = userData;
-
-                if (userData.is_mentor) {
-                    document.getElementById('assign-mission-admin').style.display = 'none';
-                }
+            const userRes = await fetch(`${API_BASE_URL}/users/${currentUserId}`);
+            currentUserProfile = await userRes.json();
+            if (currentUserProfile.is_mentor) {
+                document.getElementById('assign-mission-admin').style.display = 'none';
             }
-            
+
             saveSession();
-            renderProfile();
             switchScreen('profile');
         } else {
             const error = await response.json();

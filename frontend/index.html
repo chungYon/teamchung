@@ -17,18 +17,18 @@
     </div>
     
     <nav id="navbar" class="glass-nav">
+        <div class="nav-links">
+            <button onclick="switchScreen('profile')" id="btn-profile" style="display:none;">내 프로필</button>
+            <button onclick="switchScreen('mission')" id="btn-mission" style="display:none;">미션 보드</button>
+            <button onclick="switchScreen('score')" id="btn-score">리더보드</button>
+            <button onclick="switchScreen('matching')" id="btn-matching" style="display:none;">매칭 현황</button>
+            <button onclick="switchScreen('users')" id="btn-users" style="display:none;">회원 목록</button>
+        </div>
         <div class="logo">
             <span class="logo-mark" aria-hidden="true">
                 <img src="img/Dasom Logo.png" alt="Dasom Cupid 로고">
             </span>
             <span class="logo-title">Dasom Cupid</span>
-        </div>
-        <div class="nav-links">
-            <button onclick="switchScreen('login')" class="active" id="btn-login">1. 로그인</button>
-            <button onclick="switchScreen('matching')" id="btn-matching" style="display:none;">2. 매칭 현황</button>
-            <button onclick="switchScreen('mission')" id="btn-mission" style="display:none;">3. 미션 보드</button>
-            <button onclick="switchScreen('score')" id="btn-score">4. 리더보드</button>
-            <button onclick="switchScreen('users')" id="btn-users" style="display:none;">5. 회원 목록</button>
         </div>
     </nav>
 
@@ -109,14 +109,20 @@
             </div>
         </div>
 
-        <!-- 3. 프로필 창 -->
+        <!-- 3. 프로필 창 (내 프로필 + 매칭 상대) -->
         <div id="profile" class="screen fade-in">
             <h2>내 프로필</h2>
-            <div class="card glass-card" id="profile-info">
-                <p>로그인하면 내 프로필 정보를 이곳에서 확인할 수 있습니다.</p>
+            <div class="profile-grid">
+                <div class="card glass-card" id="profile-info">
+                    <p>로그인하면 내 프로필 정보를 이곳에서 확인할 수 있습니다.</p>
+                </div>
+                <div class="card glass-card" id="partner-info">
+                    <h3>매칭 상대</h3>
+                    <p>매칭 정보를 불러오는 중입니다.</p>
+                </div>
             </div>
-            <div class="actions" style="margin-top:15px; gap:10px; display:flex; flex-wrap:wrap;">
-                <button class="btn-secondary" onclick="switchScreen('matching')">매칭 상태 보기</button>
+            <div class="actions" style="margin-top:18px; gap:10px; display:flex; flex-wrap:wrap;">
+                <button class="btn-secondary" onclick="loadProfileScreen()">새로고침</button>
                 <button class="btn-secondary" onclick="logout()">로그아웃</button>
             </div>
         </div>
@@ -267,27 +273,21 @@
         currentMatchId = saved.matchId;
         isAdmin = saved.isAdmin === true;
 
-        document.getElementById('btn-matching').style.display = 'inline-block';
+        applyNavForRole();
         document.getElementById('btn-mission').style.display = saved.matchId ? 'inline-block' : 'none';
-        document.getElementById('btn-users').style.display = isAdmin ? 'inline-block' : 'none';
-        document.getElementById('btn-admin-match').style.display = isAdmin ? 'inline-block' : 'none';
-        document.getElementById('assign-mission-admin').style.display = isAdmin ? 'block' : 'none';
-        
-        const btnRefresh = document.getElementById('btn-refresh-match');
-        if (btnRefresh) {
-            btnRefresh.innerText = isAdmin ? "매칭 현황 새로고침" : "내 매칭 정보 새로고침";
+
+        if (isAdmin) {
+            switchScreen('matching');
+            return;
         }
 
-        if (!isAdmin) {
-            try {
-                const res = await fetch(`${API_BASE_URL}/users/${saved.userId}`);
-                if (!res.ok) throw new Error();
-                currentUserProfile = await res.json();
-                renderProfile();
-            } catch (e) {
-                clearSession();
-                return;
-            }
+        try {
+            const res = await fetch(`${API_BASE_URL}/users/${saved.userId}`);
+            if (!res.ok) throw new Error();
+            currentUserProfile = await res.json();
+        } catch (e) {
+            clearSession();
+            return;
         }
 
         switchScreen('profile');
@@ -301,7 +301,6 @@
         await _originalLogin.apply(this, arguments);
         if (currentUserId || isAdmin) {
             saveSession();
-            fetchMyMatch();
         }
     };
 
