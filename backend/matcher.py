@@ -146,6 +146,7 @@ def match_users(db: Session):
         models.User.is_mentor == True, 
         models.User.match_status == "unmatched"
     ).all()
+    matched_mentor_ids = set()
     unmatched_mentees = db.query(models.User).filter(
         models.User.is_mentor == False, 
         models.User.match_status == "unmatched"
@@ -158,7 +159,7 @@ def match_users(db: Session):
         best_score = -1
         
         for mentor in unmatched_mentors:
-            if mentor.match_status != "unmatched":
+            if mentor.id in matched_mentor_ids or mentor.match_status != "unmatched":
                 continue
             
             # Calculate separate compatibility components and add them.
@@ -177,8 +178,8 @@ def match_users(db: Session):
             best_mentor.match_status = "matched"
             mentee.match_status = "matched"
             
-            # Remove mentor from the pool so they are not matched more than once.
-            unmatched_mentors.remove(best_mentor)
+            # Keep the candidate list stable; track used mentors separately.
+            matched_mentor_ids.add(best_mentor.id)
             matches_created.append(new_match)
     
     db.commit()
