@@ -160,9 +160,11 @@ function applyNavForRole() {
     };
 
     show('btn-profile', loggedIn && !isAdmin);
+    show('btn-score', loggedIn);
     show('btn-matching', loggedIn && isAdmin);
     show('btn-users', loggedIn && isAdmin);
     show('btn-admin-match', loggedIn && isAdmin);
+    show('btn-logout', loggedIn);
 
     const assign = document.getElementById('assign-mission-admin');
     if (assign) assign.style.display = isAdmin ? 'block' : 'none';

@@ -20,9 +20,10 @@
         <div class="nav-links">
             <button onclick="switchScreen('profile')" id="btn-profile" style="display:none;">내 프로필</button>
             <button onclick="switchScreen('mission')" id="btn-mission" style="display:none;">미션 보드</button>
-            <button onclick="switchScreen('score')" id="btn-score">리더보드</button>
+            <button onclick="switchScreen('score')" id="btn-score" style="display:none;">리더보드</button>
             <button onclick="switchScreen('matching')" id="btn-matching" style="display:none;">매칭 현황</button>
             <button onclick="switchScreen('users')" id="btn-users" style="display:none;">회원 목록</button>
+            <button onclick="logout()" id="btn-logout" class="nav-logout" style="display:none;">로그아웃</button>
         </div>
         <div class="logo">
             <span class="logo-mark" aria-hidden="true">
@@ -123,7 +124,6 @@
             </div>
             <div class="actions" style="margin-top:18px; gap:10px; display:flex; flex-wrap:wrap;">
                 <button class="btn-secondary" onclick="loadProfileScreen()">새로고침</button>
-                <button class="btn-secondary" onclick="logout()">로그아웃</button>
             </div>
         </div>
 
