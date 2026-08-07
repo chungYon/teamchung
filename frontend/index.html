@@ -83,8 +83,10 @@
                     <input type="text" id="reg-phone" placeholder="010-0000-0000">
                 </div>
                 <div class="form-group span-2">
-                    <label>취미 (단어 키워드 중심)</label>
-                    <input type="text" id="reg-hobbies" placeholder="예: 독서, 게임, 자전거">
+                    <label>취미 (관심 분야 다중 선택)</label>
+                    <div id="hobbies-container" style="display: flex; flex-wrap: wrap; gap: 15px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+                        <!-- JS로 취미 카테고리 렌더링 예정 -->
+                    </div>
                 </div>
             </div>
             <button class="btn-submit" onclick="register()">프로필 저장 후 가입</button>
