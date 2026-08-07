@@ -872,22 +872,82 @@ async function submitMissionPhoto() {
     }
 }
 
-// 클리어 연출 (약 0.8초) 후 지도가 갱신된다
+// ---------- 클리어 연출 ----------
+// 새 이펙트는 함수 하나 만들어서 EFFECTS에 등록하면 끝난다.
+// 시그니처는 (wrap) => HTMLElement — 지도 위에 붙일 요소를 돌려주면 된다.
+// 지우는 건 playMissionClearEffect가 알아서 한다.
+const CLEAR_EFFECT = 'senior';   // 'senior' | 'stamp' | 'confetti' | 'neon'
+const CLEAR_EFFECT_MS = 1800;    // 연출 길이. CSS 애니메이션 길이와 맞출 것
+
+const EFFECTS = {
+    // 성학 선배가 지도를 덮친다 (사진 원본 그대로)
+    senior(wrap) {
+        const layer = document.createElement('div');
+        layer.className = 'effect-senior';
+
+        const img = document.createElement('img');
+        img.src = 'img/멋쟁이성학선배.png';
+        img.alt = '';
+
+        const text = document.createElement('div');
+        text.className = 'effect-senior-text';
+        text.textContent = 'CLEAR!';
+
+        layer.appendChild(img);
+        layer.appendChild(text);
+        return layer;
+    },
+
+    stamp() {
+        const el = document.createElement('div');
+        el.className = 'effect-stamp';
+        el.textContent = 'CLEAR!';
+        return el;
+    },
+
+    confetti() {
+        const layer = document.createElement('div');
+        layer.className = 'effect-confetti-layer';
+        const colors = ['#ff6fbf', '#ffd166', '#8ec5ff', '#b39ddb', '#ff8fa3'];
+        for (let i = 0; i < 24; i++) {
+            const piece = document.createElement('span');
+            piece.className = 'confetti-piece';
+            piece.style.background = colors[i % colors.length];
+            piece.style.setProperty('--dx', `${(Math.random() - 0.5) * 320}px`);
+            piece.style.setProperty('--dy', `${-120 - Math.random() * 220}px`);
+            piece.style.animationDelay = `${Math.random() * 0.15}s`;
+            layer.appendChild(piece);
+        }
+        return layer;
+    },
+
+    neon() {
+        const layer = document.createElement('div');
+        layer.className = 'effect-neon-layer';
+        for (let i = 0; i < 3; i++) {
+            const ring = document.createElement('span');
+            ring.className = 'neon-ring';
+            ring.style.animationDelay = `${i * 0.15}s`;
+            layer.appendChild(ring);
+        }
+        return layer;
+    },
+};
+
 function playMissionClearEffect() {
     return new Promise((resolve) => {
         const wrap = document.querySelector('#mission .dasom-wrap');
-        if (!wrap) {
+        const make = EFFECTS[CLEAR_EFFECT] || EFFECTS.stamp;
+        if (!wrap || !make) {
             resolve();
             return;
         }
-        const stamp = document.createElement('div');
-        stamp.className = 'effect-stamp';
-        stamp.textContent = 'CLEAR!';
-        wrap.appendChild(stamp);
+        const el = make(wrap);
+        wrap.appendChild(el);
         setTimeout(() => {
-            stamp.remove();
+            el.remove();
             resolve();
-        }, 800);
+        }, CLEAR_EFFECT_MS);
     });
 }
 

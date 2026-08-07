@@ -493,6 +493,106 @@ body {
     cursor: not-allowed;
 }
 
+/* 클리어 이펙트: 성학 선배 (기본값)
+   사진은 원본 그대로 쓴다. 자르거나 보정하지 않는다. */
+.effect-senior {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 12;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.effect-senior img {
+    width: min(62vw, 560px);
+    height: auto;
+    display: block;
+    border: 6px solid #fff;
+    border-radius: 10px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    animation: seniorBurst 1.8s cubic-bezier(.2, .9, .25, 1) forwards;
+}
+
+.effect-senior-text {
+    font-size: clamp(28px, 5vw, 54px);
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #fff;
+    text-shadow: 0 0 12px var(--primary), 0 4px 10px rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    animation: seniorText 1.8s ease forwards;
+}
+
+@keyframes seniorBurst {
+    0% {
+        opacity: 0;
+        transform: scale(0.15) rotate(-14deg);
+    }
+
+    10% {
+        opacity: 1;
+        transform: scale(1.18) rotate(6deg);
+    }
+
+    18% {
+        transform: scale(0.96) rotate(-5deg);
+    }
+
+    26% {
+        transform: scale(1.06) rotate(4deg);
+    }
+
+    34% {
+        transform: scale(1) rotate(-3deg);
+    }
+
+    42% {
+        transform: scale(1.02) rotate(3deg);
+    }
+
+    50%,
+    80% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.25) rotate(2deg);
+    }
+}
+
+@keyframes seniorText {
+
+    0%,
+    12% {
+        opacity: 0;
+        transform: scale(0.6);
+    }
+
+    22% {
+        opacity: 1;
+        transform: scale(1.15);
+    }
+
+    30%,
+    80% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.1);
+    }
+}
+
 /* 클리어 이펙트: 도장 */
 .effect-stamp {
     position: absolute;
