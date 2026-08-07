@@ -300,17 +300,24 @@ body {
 }
 
 /* 캐릭터는 배지가 아니므로 원형 배경 없이 아이콘만 (마커들과 헷갈리지 않게) */
+/* 진행 캐릭터. 발끝이 좌표에 닿도록 아래쪽을 기준점으로 잡는다. */
 .walker-marker {
     position: absolute;
     top: 0;
     left: 0;
-    font-size: clamp(20px, 3vw, 32px);
-    line-height: 1;
-    transform: translate(-50%, -50%);
+    line-height: 0;
+    transform: translate(-50%, -100%);
     transition: left 0.8s ease, top 0.8s ease;
-    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.55));
     pointer-events: none;
     animation: walkerBob 1.6s ease-in-out infinite;
+    z-index: 3;
+}
+
+.walker-marker img {
+    height: clamp(52px, 8.5vw, 96px);
+    width: auto;
+    display: block;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
 }
 
 @keyframes walkerBob {
