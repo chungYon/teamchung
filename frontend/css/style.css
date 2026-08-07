@@ -1,17 +1,17 @@
 :root {
-    --primary: #8b5cf6;
-    --primary-hover: #7c3aed;
-    --bg-color: #eef2ff;
-    --text-color: #0f172a;
-    --glass-bg: rgba(255, 255, 255, 0.75);
-    --glass-border: rgba(148, 163, 184, 0.35);
-    --card-bg: rgba(255, 255, 255, 0.82);
-    --shadow-color: rgba(99, 102, 241, 0.18);
+    --primary: #ff6fbf;
+    --primary-hover: #ff4da6;
+    --bg-color: #fff0f8;
+    --text-color: #2b1a32;
+    --glass-bg: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(255, 182, 193, 0.45);
+    --card-bg: rgba(255, 255, 255, 0.98);
+    --shadow-color: rgba(255, 111, 191, 0.18);
 }
 
 body {
     font-family: 'Inter', sans-serif;
-    background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 100%);
+    background: linear-gradient(180deg, #fff0f8 0%, #ffe8f3 75%, #fff9fb 100%);
     color: var(--text-color);
     margin: 0;
     padding: 0;
@@ -34,21 +34,21 @@ body {
 }
 .shape-1 {
     top: -10%; left: -10%;
-    width: 500px; height: 500px;
-    background: #4f46e5;
+    width: 520px; height: 520px;
+    background: #ffc6e2;
     border-radius: 50%;
 }
 .shape-2 {
-    bottom: -20%; right: -10%;
-    width: 600px; height: 600px;
-    background: #ec4899;
+    bottom: -20%; right: -14%;
+    width: 640px; height: 640px;
+    background: #ff8ad0;
     border-radius: 50%;
     animation-delay: -5s;
 }
 .shape-3 {
-    top: 40%; left: 40%;
-    width: 400px; height: 400px;
-    background: #0ea5e9;
+    top: 32%; left: 42%;
+    width: 360px; height: 360px;
+    background: #ffe1f1;
     border-radius: 50%;
     animation-delay: -10s;
 }
@@ -59,10 +59,10 @@ body {
 
 /* Nav */
 .glass-nav {
-    background: rgba(15, 23, 42, 0.7);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--glass-border);
+    border-bottom: 1px solid rgba(255, 182, 193, 0.45);
     padding: 15px 30px;
     display: flex;
     justify-content: space-between;
@@ -77,27 +77,27 @@ body {
     gap: 12px;
     font-size: 1.25rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--text-color);
 }
 .logo-mark {
-    width: 42px;
-    height: 42px;
+    width: 48px;
+    height: 48px;
     display: inline-flex;
-    border-radius: 14px;
-    background: rgba(236, 72, 153, 0.15);
+    border-radius: 16px;
+    background: rgba(255, 111, 191, 0.12);
     align-items: center;
     justify-content: center;
-    box-shadow: 0 10px 30px rgba(236, 72, 153, 0.12);
+    box-shadow: 0 10px 30px rgba(255, 111, 191, 0.18);
 }
-.logo-mark svg,
 .logo-mark img {
-    width: 100%;
-    height: 100%;
+    width: 90%;
+    height: 90%;
     object-fit: contain;
+    border-radius: 10px;
 }
 .logo-title {
     display: inline-block;
-    background: linear-gradient(90deg, #8b5cf6, #ec4899);
+    background: linear-gradient(90deg, #ff6fbf, #ff4da6);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -117,7 +117,7 @@ body {
 }
 .nav-links button.active {
     background: var(--primary);
-    box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 0 15px rgba(255, 111, 191, 0.45);
 }
 
 /* Container */
@@ -125,7 +125,7 @@ body {
     max-width: 900px;
     margin: 40px auto;
     padding: 30px;
-    border-radius: 24px;
+    border-radius: 32px;
 }
 .glass-container {
     background: var(--card-bg);
@@ -133,6 +133,8 @@ body {
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     box-shadow: 0 20px 45px -20px var(--shadow-color);
+    position: relative;
+    overflow: hidden;
 }
 .hero {
     display: flex;
@@ -143,27 +145,55 @@ body {
     padding: 30px 25px;
     margin-bottom: 30px;
     border-radius: 24px;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.18), rgba(236, 72, 153, 0.14));
-    border: 1px solid rgba(139, 92, 246, 0.18);
+    background: linear-gradient(135deg, rgba(255, 117, 177, 0.14), rgba(255, 111, 191, 0.2));
+    border: 1px solid rgba(255, 111, 191, 0.35);
 }
 .hero-text h1 {
     margin: 0;
     font-size: 2.4rem;
     line-height: 1.1;
-    color: #4338ca;
+    color: #c8147f;
 }
 .hero-text p {
     margin: 12px 0 0;
     font-size: 1.05rem;
-    color: #334155;
+    color: #6b3652;
 }
-.screen { display: none; }
+#login {
+    max-width: 520px;
+    margin: 50px auto 0;
+    position: relative;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.98);
+    padding: 30px;
+    border-radius: 32px;
+    border: 1px solid rgba(255, 182, 193, 0.55);
+    box-shadow: 0 24px 60px rgba(255, 111, 191, 0.15);
+}
+#login::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    right: -80px;
+    width: 320px;
+    height: 320px;
+    background: url('../img/cupid_logo.png') center/contain no-repeat;
+    opacity: 0.2;
+    transform: rotate(12deg);
+    pointer-events: none;
+}
+#login h2 {
+    position: relative;
+    z-index: 1;
+}
+.screen { display: none; position: relative; }
 .screen.active { display: block; }
 h2 {
     border-bottom: 2px solid var(--primary);
     padding-bottom: 10px;
     margin-bottom: 25px;
     font-weight: 600;
+    color: #8f2d5c;
 }
 
 /* Animations */
@@ -202,15 +232,15 @@ input:focus, select:focus {
     box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
 }
 .btn-submit {
-    background: linear-gradient(135deg, var(--primary), #a855f7);
+    background: linear-gradient(135deg, var(--primary), #ff4da6);
     color: white;
     border: none;
     padding: 12px 20px;
     cursor: pointer;
-    border-radius: 8px;
+    border-radius: 12px;
     width: 100%;
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 700;
     margin-top: 10px;
     transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -219,16 +249,16 @@ input:focus, select:focus {
     box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
 }
 .btn-secondary {
-    background: var(--glass-bg);
-    color: white;
-    border: 1px solid var(--glass-border);
-    padding: 8px 15px;
+    background: rgba(255, 240, 250, 0.95);
+    color: #a61f74;
+    border: 1px solid rgba(255, 182, 193, 0.55);
+    padding: 10px 16px;
     cursor: pointer;
-    border-radius: 6px;
-    transition: background 0.3s;
+    border-radius: 14px;
+    transition: background 0.3s, transform 0.2s;
 }
-.btn-secondary:hover { background: rgba(255, 255, 255, 0.1); }
-.actions { margin-bottom: 20px; display: flex; gap: 10px; }
+.btn-secondary:hover { background: rgba(255, 230, 242, 0.95); transform: translateY(-1px); }
+.actions { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; }
 
 /* Card Styles */
 .card {
