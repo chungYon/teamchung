@@ -256,15 +256,19 @@ def debug_set_progress(match_id: int, count: int, db: Session = Depends(get_db))
 
     count = max(0, min(count, len(MISSIONS)))
 
+    # 미션 8개 행은 항상 유지하고 완료 여부만 바꾼다.
+    # (미완료 행을 지우면 미션 보드 목록이 비어 보인다)
     db.query(models.Mission).filter(models.Mission.match_id == match_id).delete()
-    for m in MISSIONS[:count]:
+    for idx, m in enumerate(MISSIONS):
+        completed = idx < count
         db.add(models.Mission(
             match_id=match_id,
             mission_id=m["id"],
             title=m["title"],
-            is_completed=True,
+            description=m.get("description", m["title"]),
+            is_completed=completed,
             points=100,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.utcnow() if completed else None,
         ))
 
     match.score = count * 100

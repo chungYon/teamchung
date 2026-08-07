@@ -70,7 +70,16 @@ window.addEventListener("DOMContentLoaded", () => {
         container.innerHTML = html;
     }
     setupMissionDebugSlider();
+    setupMissionUploadModal();
 });
+
+function setupMissionUploadModal() {
+    const cancelBtn = document.getElementById('missionModalCancel');
+    const submitBtn = document.getElementById('missionModalSubmit');
+    if (!cancelBtn || !submitBtn) return;
+    cancelBtn.addEventListener('click', closeMissionSubmit);
+    submitBtn.addEventListener('click', submitMissionPhoto);
+}
 
 function setupMissionDebugSlider() {
     const slider = document.getElementById('missionDebugSlider');
@@ -473,9 +482,12 @@ function updateMissionWalker(completedCount) {
 }
 
 function renderMissionIslandStates(missions) {
+    // 1단계(미션 0)는 D섬에만 있으므로 전체 미션에서 판정해야 한다.
+    // 섬별로 계산하면 A/S/O/M은 항상 false가 되어 영원히 잠긴다.
+    const firstStageDone = missions.some((m) => m.mission_id === 0 && m.is_completed);
+
     Object.keys(missionIslandOverlays).forEach((islandKey) => {
         const islandMissions = missions.filter((m) => (m.island || MISSION_INFO[m.mission_id]?.island) === islandKey);
-        const firstStageDone = islandMissions.some((m) => m.mission_id === 0 && m.is_completed);
         const isLocked = islandMissions.some((m) => !m.is_completed && m.mission_id !== 0 && !firstStageDone);
         const isDone = islandMissions.length > 0 && islandMissions.every((m) => m.is_completed);
 
@@ -525,30 +537,82 @@ function renderMissionList(missions) {
     });
 }
 
+// 인증은 사진 업로드 한 종류로 통일한다 (CLAUDE.md 미션 설계)
+let pendingMissionCatalogId = null;
+
 function openMissionSubmit(mission) {
-    const proof = prompt(`'${mission.title}' 미션 인증 URL 또는 텍스트를 입력하세요`);
-    if (!proof) return;
-    submitMission(mission.id, proof);
+    pendingMissionCatalogId = mission.mission_id;
+    document.getElementById('missionModalTitle').textContent = mission.title;
+    document.getElementById('missionModalMsg').textContent = '';
+    document.getElementById('missionPhotoInput').value = '';
+    document.getElementById('missionUploadModal').classList.add('open');
 }
 
-async function submitMission(missionId, proof) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/missions/${missionId}/submit`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ proof_url: proof })
-        });
+function closeMissionSubmit() {
+    document.getElementById('missionUploadModal').classList.remove('open');
+    pendingMissionCatalogId = null;
+}
 
-        if (response.ok) {
-            await response.json();
-            alert('미션 제출 완료되었습니다.');
-            fetchMissions();
-        } else {
-            alert('미션 제출에 실패했습니다.');
-        }
-    } catch (e) {
-        alert('통신 오류가 발생했습니다.');
+async function submitMissionPhoto() {
+    const msgEl = document.getElementById('missionModalMsg');
+    const fileEl = document.getElementById('missionPhotoInput');
+    const submitBtn = document.getElementById('missionModalSubmit');
+
+    if (!fileEl.files[0]) {
+        msgEl.textContent = '사진을 선택해주세요.';
+        return;
     }
+    if (!currentMatchId || !currentUserId) {
+        msgEl.textContent = '매칭 정보가 없습니다. 매칭 현황을 먼저 확인해주세요.';
+        return;
+    }
+
+    submitBtn.disabled = true;
+    msgEl.textContent = '업로드 중...';
+
+    const formData = new FormData();
+    formData.append('photo', fileEl.files[0]);
+    formData.append('user_id', currentUserId);
+
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/api/matches/${currentMatchId}/missions/${pendingMissionCatalogId}/complete`,
+            { method: 'POST', body: formData }
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+            msgEl.textContent = data.detail || '완료 처리에 실패했습니다.';
+            return;
+        }
+
+        closeMissionSubmit();
+        await playMissionClearEffect();
+        fetchMissions();
+    } catch (e) {
+        msgEl.textContent = '서버 연결에 실패했습니다.';
+    } finally {
+        submitBtn.disabled = false;
+    }
+}
+
+// 클리어 연출 (약 0.8초) 후 지도가 갱신된다
+function playMissionClearEffect() {
+    return new Promise((resolve) => {
+        const wrap = document.querySelector('#mission .dasom-wrap');
+        if (!wrap) {
+            resolve();
+            return;
+        }
+        const stamp = document.createElement('div');
+        stamp.className = 'effect-stamp';
+        stamp.textContent = 'CLEAR!';
+        wrap.appendChild(stamp);
+        setTimeout(() => {
+            stamp.remove();
+            resolve();
+        }, 800);
+    });
 }
 
 // 5. 리더보드

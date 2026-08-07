@@ -211,6 +211,19 @@
         </div>
     </div>
 
+    <!-- 미션 사진 인증 모달 -->
+    <div class="modal-overlay" id="missionUploadModal">
+        <div class="modal-card">
+            <h3 id="missionModalTitle">미션 제목</h3>
+            <input type="file" id="missionPhotoInput" accept="image/*">
+            <p class="modal-msg" id="missionModalMsg"></p>
+            <div class="modal-actions">
+                <button id="missionModalCancel" class="btn-secondary">취소</button>
+                <button id="missionModalSubmit" class="btn-primary">완료 처리</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/app.js"></script>
     <script>
     const SESSION_KEY = 'dasom_session';
