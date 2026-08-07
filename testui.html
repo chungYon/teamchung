@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>멘토-멘티 매칭 시스템</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; margin: 0; padding: 0; }
+        nav { background-color: #333; padding: 10px; text-align: center; }
+        nav button { background-color: #555; color: white; border: none; padding: 10px 20px; margin: 0 5px; cursor: pointer; border-radius: 4px; }
+        nav button.active { background-color: #007bff; }
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        h2 { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+        
+        /* Form Styles */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="password"], input[type="number"], select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-submit { background-color: #28a745; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; width: 100%; }
+        
+        /* Card Styles */
+        .card { border: 1px solid #ddd; padding: 15px; border-radius: 4px; margin-bottom: 15px; background-color: #fafafa; }
+        
+        /* Table Styles */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background-color: #eee; }
+    </style>
+</head>
+<body>
+
+    <!-- 화면 전환 네비게이션 (테스트용) -->
+    <nav id="navbar">
+        <button onclick="switchScreen('login')" class="active">1. 로그인</button>
+        <button onclick="switchScreen('profile')">2. 프로필 입력</button>
+        <button onclick="switchScreen('matching')">3. 매칭 창</button>
+        <button onclick="switchScreen('mission')">4. 미션 창</button>
+        <button onclick="switchScreen('score')">5. 점수 확인</button>
+    </nav>
+
+    <div class="container">
+        <!-- 1. 로그인 창 -->
+        <div id="login" class="screen active">
+            <h2>로그인</h2>
+            <div class="form-group">
+                <label>아이디</label>
+                <input type="text" placeholder="아이디 입력">
+            </div>
+            <div class="form-group">
+                <label>비밀번호</label>
+                <input type="password" placeholder="비밀번호 입력">
+            </div>
+            <button class="btn-submit">로그인 실행</button>
+        </div>
+
+        <!-- 2. 프로필 입력 창 -->
+        <div id="profile" class="screen">
+            <h2>프로필 입력</h2>
+            <div class="form-group">
+                <label>이름</label>
+                <input type="text">
+            </div>
+            <div class="form-group">
+                <label>성별</label>
+                <select><option>남성</option><option>여성</option></select>
+            </div>
+            <div class="form-group">
+                <label>나이</label>
+                <input type="number">
+            </div>
+            <div class="form-group">
+                <label>MBTI</label>
+                <input type="text" placeholder="예: INTP">
+            </div>
+            <div class="form-group">
+                <label>취미 (단어 키워드 중심)</label>
+                <input type="text" placeholder="예: 독서, 게임, 자전거">
+            </div>
+            <div class="form-group">
+                <label>주거 형태</label>
+                <select><option>자취</option><option>통학</option><option>기숙사</option></select>
+            </div>
+            <div class="form-group">
+                <label>학적 상태</label>
+                <select><option>신입생 (멘티)</option><option>재학생 (멘토)</option></select>
+            </div>
+            <div class="form-group">
+                <label>휴대폰 번호</label>
+                <input type="text" placeholder="010-0000-0000">
+            </div>
+            <button class="btn-submit">프로필 저장</button>
+        </div>
+
+        <!-- 3. 매칭 창 -->
+        <div id="matching" class="screen">
+            <h2>매칭 결과</h2>
+            <div class="card">
+                <h3>내 파트너 정보</h3>
+                <p><strong>상태:</strong> 매칭 완료</p>
+                <p><strong>역할:</strong> 멘티 (신입생)</p>
+                <p><strong>이름:</strong> 김철수</p>
+                <p><strong>MBTI 궁합:</strong> 95% 호환 (INTJ - ENTP)</p>
+                <p><strong>공통 키워드:</strong> 게임, 자취</p>
+                <button class="btn-submit" style="background-color: #007bff;">연락하기</button>
+            </div>
+        </div>
+
+        <!-- 4. 미션 창 -->
+        <div id="mission" class="screen">
+            <h2>현재 할당된 미션</h2>
+            <div class="card">
+                <h3>[1단계] 탐색적 미션: 공통 취미 활동 인증</h3>
+                <p><strong>내용:</strong> 공통 취미인 '게임'과 관련된 활동을 수행하고 인증 사진을 업로드하십시오.</p>
+                <p><strong>상태:</strong> 진행 중</p>
+                <div class="form-group">
+                    <label>결과물 업로드 (이미지 URL 또는 텍스트)</label>
+                    <input type="text" placeholder="인증 정보 입력">
+                </div>
+                <button class="btn-submit">미션 제출 및 검증 요청</button>
+            </div>
+        </div>
+
+        <!-- 5. 점수 확인 창 -->
+        <div id="score" class="screen">
+            <h2>점수 확인 (리더보드)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>순위</th>
+                        <th>멘토-멘티 팀</th>
+                        <th>완료 미션 수</th>
+                        <th>누적 점수</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>홍길동 & 김철수</td>
+                        <td>4</td>
+                        <td>400</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>이영희 & 박지성</td>
+                        <td>3</td>
+                        <td>300</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 화면 전환 로직 -->
+    <script>
+        function switchScreen(screenId) {
+            // 모든 화면 숨김 처리
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            // 모든 버튼 비활성화 상태로 변경
+            document.querySelectorAll('#navbar button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // 선택된 화면 출력
+            document.getElementById(screenId).classList.add('active');
+            // 선택된 버튼 활성화
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
