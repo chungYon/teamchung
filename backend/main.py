@@ -29,7 +29,7 @@ app.add_middleware(
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
     if db_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
+        raise HTTPException(status_code=400, detail="동일한 id가 등록되었습니다.")
     
     # In a real app we'd hash the password here
     db_user = models.User(
@@ -82,6 +82,32 @@ def trigger_matching(db: Session = Depends(get_db)):
 @app.get("/api/matches", response_model=List[schemas.MatchBase])
 def get_matches(db: Session = Depends(get_db)):
     return db.query(models.Match).all()
+
+@app.get("/api/admin/matches")
+def get_admin_matches(db: Session = Depends(get_db)):
+    from matcher import get_mbti_score, get_hobbies_score
+    matches = db.query(models.Match).all()
+    results = []
+    for m in matches:
+        mentor = db.query(models.User).filter(models.User.id == m.mentor_id).first()
+        mentee = db.query(models.User).filter(models.User.id == m.mentee_id).first()
+        if not mentor or not mentee:
+            continue
+        
+        mbti_score = get_mbti_score(mentor.mbti, mentee.mbti)
+        hobby_score = get_hobbies_score(mentor.hobbies, mentee.hobbies)
+        
+        results.append({
+            "match_id": m.id,
+            "mentor_name": mentor.name,
+            "mentee_name": mentee.name,
+            "mentor_mbti": mentor.mbti,
+            "mentee_mbti": mentee.mbti,
+            "mbti_score": mbti_score,
+            "hobby_score": hobby_score,
+            "total_score": m.score
+        })
+    return results
 
 # Get matches for a specific user
 @app.get("/api/users/{user_id}/match")

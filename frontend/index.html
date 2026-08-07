@@ -126,7 +126,7 @@
             <h2>매칭 결과</h2>
             <div class="actions">
                 <button class="btn-secondary" onclick="triggerMatching()" id="btn-admin-match" style="display:none;">매칭 알고리즘 실행</button>
-                <button class="btn-secondary" onclick="fetchMyMatch()">내 매칭 정보 새로고침</button>
+                <button class="btn-secondary" onclick="fetchMyMatch()" id="btn-refresh-match">내 매칭 정보 새로고침</button>
             </div>
             <div class="admin-note" id="admin-match-result" style="display:none;"></div>
             <div class="card glass-card" id="match-info">
@@ -272,6 +272,11 @@
         document.getElementById('btn-users').style.display = isAdmin ? 'inline-block' : 'none';
         document.getElementById('btn-admin-match').style.display = isAdmin ? 'inline-block' : 'none';
         document.getElementById('assign-mission-admin').style.display = isAdmin ? 'block' : 'none';
+        
+        const btnRefresh = document.getElementById('btn-refresh-match');
+        if (btnRefresh) {
+            btnRefresh.innerText = isAdmin ? "매칭 현황 새로고침" : "내 매칭 정보 새로고침";
+        }
 
         if (!isAdmin) {
             try {
