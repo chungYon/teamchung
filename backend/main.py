@@ -110,6 +110,7 @@ def get_user_match(user_id: int, db: Session = Depends(get_db)):
         "mentee_id": match.mentee_id,
         "score": match.score,
         "partner_name": partner.name if partner else "Unknown",
+        "partner_phone": partner.phone if partner else "",
         "partner_role": "멘티 (신입생)" if user.is_mentor else "멘토 (재학생)",
         "partner_mbti": partner.mbti if partner else "",
         "partner_hobbies": partner.hobbies if partner else ""

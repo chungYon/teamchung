@@ -109,7 +109,19 @@
             </div>
         </div>
 
-        <!-- 3. 매칭 창 -->
+        <!-- 3. 프로필 창 -->
+        <div id="profile" class="screen fade-in">
+            <h2>내 프로필</h2>
+            <div class="card glass-card" id="profile-info">
+                <p>로그인하면 내 프로필 정보를 이곳에서 확인할 수 있습니다.</p>
+            </div>
+            <div class="actions" style="margin-top:15px; gap:10px; display:flex; flex-wrap:wrap;">
+                <button class="btn-secondary" onclick="switchScreen('matching')">매칭 상태 보기</button>
+                <button class="btn-secondary" onclick="logout()">로그아웃</button>
+            </div>
+        </div>
+
+        <!-- 4. 매칭 창 -->
         <div id="matching" class="screen fade-in">
             <h2>매칭 결과</h2>
             <div class="actions">
@@ -140,6 +152,11 @@
             </div>
             <div class="mission-list" id="missionList">
                 <!-- Missions will be injected here -->
+            </div>
+            <div class="debug-panel" id="missionDebugPanel">
+                <label for="missionDebugSlider">진행도 조절 (테스트용): <span id="missionDebugValue">0</span> / 8</label>
+                <input type="range" id="missionDebugSlider" min="0" max="8" value="0" step="1">
+                <div style="margin-top:8px; font-size:12px; color:var(--muted);">테스트용 슬라이더는 화면 진행도만 조절합니다.</div>
             </div>
             <div class="card glass-card" id="assign-mission-admin" style="margin-top:20px; border: 1px dashed #a855f7; display:none;">
                 <h3>새로운 미션 할당 (관리자용 Mock)</h3>
@@ -228,7 +245,7 @@
         isAdmin = saved.isAdmin === true;
 
         document.getElementById('btn-matching').style.display = 'inline-block';
-        document.getElementById('btn-mission').style.display = 'inline-block';
+        document.getElementById('btn-mission').style.display = saved.matchId ? 'inline-block' : 'none';
         document.getElementById('btn-users').style.display = isAdmin ? 'inline-block' : 'none';
         document.getElementById('btn-admin-match').style.display = isAdmin ? 'inline-block' : 'none';
         document.getElementById('assign-mission-admin').style.display = isAdmin ? 'block' : 'none';
@@ -237,13 +254,15 @@
             try {
                 const res = await fetch(`${API_BASE_URL}/users/${saved.userId}`);
                 if (!res.ok) throw new Error();
+                currentUserProfile = await res.json();
+                renderProfile();
             } catch (e) {
                 clearSession();
                 return;
             }
         }
 
-        switchScreen('matching');
+        switchScreen('profile');
     }
 
     const _originalLogin = window.login;

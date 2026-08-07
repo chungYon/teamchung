@@ -2,6 +2,7 @@ const API_BASE_URL = 'http://localhost:8000';
 let currentUserId = null;
 let currentMatchId = null;
 let isAdmin = false;
+let currentUserProfile = null;
 
 const missionIslandOverlays = {
     D: { dim: { x: 10, y: 49, w: 16, h: 33 }, badge: { x: 9.1, y: 60.7 } },
@@ -25,8 +26,19 @@ const missionWaypoints = [
 
 let missionOverlayElems = {};
 let missionBadgeElems = {};
+let lastLoadedMissions = [];
 
 const MISSION_PROGRESS_COUNT = 8;
+const MISSION_INFO = {
+    0: { island: 'D' },
+    1: { island: 'A' },
+    2: { island: 'A' },
+    3: { island: 'S' },
+    4: { island: 'O' },
+    5: { island: 'O' },
+    6: { island: 'M' },
+    7: { island: 'M' },
+};
 
 const HOBBIES = {
     "운동": ["러닝", "헬스", "테니스", "클라이밍", "자전거"],
@@ -57,7 +69,35 @@ window.addEventListener("DOMContentLoaded", () => {
         }
         container.innerHTML = html;
     }
+    setupMissionDebugSlider();
 });
+
+function setupMissionDebugSlider() {
+    const slider = document.getElementById('missionDebugSlider');
+    const valueEl = document.getElementById('missionDebugValue');
+    if (!slider || !valueEl) return;
+
+    slider.addEventListener('input', () => {
+        const count = parseInt(slider.value, 10);
+        valueEl.textContent = count;
+        if (lastLoadedMissions.length === 0) return;
+
+        const preview = getMissionPreview(lastLoadedMissions, count);
+        document.getElementById('mission-completed-count').textContent = count;
+        document.getElementById('mission-progress-bar-fill').style.width = `${(count / MISSION_PROGRESS_COUNT) * 100}%`;
+        renderMissionIslandStates(preview);
+        renderMissionList(preview);
+        updateMissionWalker(count);
+    });
+}
+
+function getMissionPreview(missions, count) {
+    const ordered = [...missions].sort((a, b) => (a.mission_id ?? 0) - (b.mission_id ?? 0));
+    return ordered.map((mission, index) => ({
+        ...mission,
+        is_completed: index < count
+    }));
+}
 
 async function fetchUsers() {
     try {
@@ -90,6 +130,10 @@ async function fetchUsers() {
 }
 
 function switchScreen(screenId) {
+    if (screenId === 'login' && currentUserId) {
+        screenId = 'profile';
+    }
+
     // Hide all screens
     document.querySelectorAll('.screen').forEach(screen => {
         screen.classList.remove('active');
@@ -120,6 +164,41 @@ function switchScreen(screenId) {
     } else if(screenId === 'users') {
         fetchUsers();
     }
+}
+
+function renderProfile() {
+    const profileEl = document.getElementById('profile-info');
+    if (!profileEl) return;
+
+    if (!currentUserProfile) {
+        profileEl.innerHTML = '<p>프로필 정보를 불러올 수 없습니다.</p>';
+        return;
+    }
+
+    profileEl.innerHTML = `
+        <h3>${currentUserProfile.name}님의 프로필</h3>
+        <p><strong>아이디:</strong> ${currentUserProfile.username}</p>
+        <p><strong>전화번호:</strong> ${currentUserProfile.phone}</p>
+        <p><strong>MBTI:</strong> ${currentUserProfile.mbti}</p>
+        <p><strong>취미:</strong> ${currentUserProfile.hobbies}</p>
+        <p><strong>주거 형태:</strong> ${currentUserProfile.living_type}</p>
+        <p><strong>역할:</strong> ${currentUserProfile.is_mentor ? '멘토(재학생)' : '멘티(신입생)'}</p>
+        <p><strong>매칭 상태:</strong> ${currentUserProfile.match_status === 'matched' ? '매칭됨' : '대기중'}</p>
+    `;
+}
+
+function logout() {
+    currentUserId = null;
+    currentMatchId = null;
+    isAdmin = false;
+    currentUserProfile = null;
+    clearSession();
+    document.getElementById('btn-matching').style.display = 'none';
+    document.getElementById('btn-mission').style.display = 'none';
+    document.getElementById('btn-users').style.display = 'none';
+    document.getElementById('btn-admin-match').style.display = 'none';
+    document.getElementById('assign-mission-admin').style.display = 'none';
+    switchScreen('login');
 }
 
 // 1. 로그인
@@ -159,14 +238,16 @@ async function login() {
             if (!isAdmin) {
                 const userRes = await fetch(`${API_BASE_URL}/users/${currentUserId}`);
                 const userData = await userRes.json();
+                currentUserProfile = userData;
 
                 if (userData.is_mentor) {
                     document.getElementById('assign-mission-admin').style.display = 'none';
                 }
             }
             
-            fetchMyMatch();
-            switchScreen('matching');
+            saveSession();
+            renderProfile();
+            switchScreen('profile');
         } else {
             const error = await response.json();
             msgEl.innerText = error.detail || "로그인 실패";
@@ -272,13 +353,13 @@ async function fetchMyMatch() {
             currentMatchId = data.match_id;
             document.getElementById('btn-mission').style.display = 'inline-block';
             infoEl.innerHTML = `
-                <h3>내 파트너 정보 (Match ID: ${data.match_id})</h3>
+                <h3>내 파트너 정보</h3>
                 <p><strong>상태:</strong> 매칭 완료</p>
                 <p><strong>역할:</strong> ${data.partner_role}</p>
-                <p><strong>이름:</strong> <span style="font-size:1.2rem; font-weight:bold; color:white;">${data.partner_name}</span></p>
+                <p><strong>이름:</strong> <span style="font-size:1.2rem; font-weight:bold; color:#000;">${data.partner_name}</span></p>
+                <p><strong>전화번호:</strong> ${data.partner_phone}</p>
                 <p><strong>파트너 MBTI:</strong> ${data.partner_mbti}</p>
                 <p><strong>파트너 취미 키워드:</strong> ${data.partner_hobbies}</p>
-                <button class="btn-submit" style="background-color: var(--primary); margin-top:15px; width:auto;" onclick="alert('준비중인 기능입니다 (채팅 등)')">연락하기</button>
             `;
             fetchMissions();
         }
@@ -356,27 +437,44 @@ async function fetchMissions() {
     try {
         const response = await fetch(`${API_BASE_URL}/api/matches/${currentMatchId}/missions`);
         const missions = await response.json();
-
         if (!Array.isArray(missions) || missions.length === 0) {
             document.getElementById('missionList').innerHTML = `<p>현재 진행중인 미션이 없습니다.</p>`;
             return;
         }
 
+        missions.sort((a, b) => (a.mission_id ?? 0) - (b.mission_id ?? 0));
+        lastLoadedMissions = missions;
+
         const completedCount = missions.filter(m => m.is_completed).length;
         document.getElementById('mission-completed-count').textContent = completedCount;
         document.getElementById('mission-progress-bar-fill').style.width = `${(completedCount / MISSION_PROGRESS_COUNT) * 100}%`;
 
+        const slider = document.getElementById('missionDebugSlider');
+        const valueEl = document.getElementById('missionDebugValue');
+        if (slider) slider.value = completedCount;
+        if (valueEl) valueEl.textContent = completedCount;
+
         renderMissionIslandStates(missions);
         renderMissionList(missions);
+        updateMissionWalker(completedCount);
     } catch (e) {
         console.error(e);
         document.getElementById('missionList').innerHTML = `<p>미션을 불러오는 중 오류가 발생했습니다.</p>`;
     }
 }
 
+function updateMissionWalker(completedCount) {
+    const walker = document.getElementById('mission-walker');
+    if (!walker) return;
+    const index = Math.max(0, Math.min(completedCount, missionWaypoints.length - 1));
+    const point = missionWaypoints[index];
+    walker.style.left = `${point.x}%`;
+    walker.style.top = `${point.y}%`;
+}
+
 function renderMissionIslandStates(missions) {
     Object.keys(missionIslandOverlays).forEach((islandKey) => {
-        const islandMissions = missions.filter((m) => m.island === islandKey);
+        const islandMissions = missions.filter((m) => (m.island || MISSION_INFO[m.mission_id]?.island) === islandKey);
         const firstStageDone = islandMissions.some((m) => m.mission_id === 0 && m.is_completed);
         const isLocked = islandMissions.some((m) => !m.is_completed && m.mission_id !== 0 && !firstStageDone);
         const isDone = islandMissions.length > 0 && islandMissions.every((m) => m.is_completed);
@@ -387,7 +485,6 @@ function renderMissionIslandStates(missions) {
 
         dim.classList.toggle('is-open', !isLocked && !isDone);
         dim.classList.toggle('is-done', isDone);
-        dim.classList.toggle('is-open', !isLocked && !isDone);
 
         badge.classList.toggle('locked', isLocked);
         badge.classList.toggle('done', isDone);
@@ -411,9 +508,10 @@ function renderMissionList(missions) {
         title.className = 'title';
         title.textContent = mission.title;
 
-        const stageTag = document.createElement('div');
-        stageTag.className = 'stage-tag';
-        stageTag.textContent = `${mission.island} 섬`;
+        const islandCode = mission.island || MISSION_INFO[mission.mission_id]?.island || '??';
+        const stageTag = document.createElement("div");
+        stageTag.className = "stage-tag";
+        stageTag.textContent = `${islandCode} 섬`;
 
         item.appendChild(badge);
         item.appendChild(title);
