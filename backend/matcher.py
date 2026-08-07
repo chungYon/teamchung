@@ -113,6 +113,24 @@ def get_hobbies_score(hobbies1: str, hobbies2: str) -> int:
     
     return score
 
+
+def get_profile_score(user1: models.User, user2: models.User) -> int:
+    score = 0
+
+    if user1.age is not None and user2.age is not None:
+        if user1.age == user2.age:
+            score += 5
+        elif abs(user1.age - user2.age) <= 2:
+            score += 2
+
+    if user1.gender and user1.gender == user2.gender:
+        score += 5
+
+    if user1.living_type and user1.living_type == user2.living_type:
+        score += 5
+
+    return score
+
 # Main matching routine.
 # 1. Finds all currently unmatched mentor and mentee users.
 # 2. For each mentee, calculates compatibility scores against available mentors.
@@ -146,6 +164,7 @@ def match_users(db: Session):
             # Calculate separate compatibility components and add them.
             score = get_mbti_score(mentor.mbti, mentee.mbti)
             score += get_hobbies_score(mentor.hobbies, mentee.hobbies)
+            score += get_profile_score(mentor, mentee)
             
             if score > best_score:
                 best_score = score
