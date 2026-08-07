@@ -1,11 +1,19 @@
-from fastapi import FastAPI, Depends, HTTPException
+import os
+from datetime import datetime
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 import models
 import schemas
 from database import engine, get_db
+from mission_data import MISSIONS
+from mission_service import get_match_progress
 
 models.Base.metadata.create_all(bind=engine)
+
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = FastAPI(title="Mentor-Mentee Matching API")
 
@@ -146,6 +154,121 @@ def submit_mission(mission_id: int, payload: MissionSubmit, db: Session = Depend
         
     db.commit()
     return {"message": "Mission submitted successfully", "points_earned": db_mission.points}
+
+@app.get("/api/matches/{match_id}/progress")
+def get_progress(match_id: int, db: Session = Depends(get_db)):
+    match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    return get_match_progress(db, match_id)
+
+
+@app.post("/api/matches/{match_id}/missions/{mission_id}/complete")
+async def complete_mission(
+    match_id: int,
+    mission_id: int,
+    user_id: int = Form(...),
+    photo: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+
+    match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="매칭을 찾을 수 없습니다")
+
+    if user_id not in (match.mentor_id, match.mentee_id):
+        raise HTTPException(status_code=403, detail="본인 팀의 미션만 완료할 수 있습니다")
+
+    catalog = next((m for m in MISSIONS if m["id"] == mission_id), None)
+    if not catalog:
+        raise HTTPException(status_code=404, detail="존재하지 않는 미션입니다")
+
+    if mission_id != 0:
+        stage1 = (
+            db.query(models.Mission)
+            .filter(
+                models.Mission.match_id == match_id,
+                models.Mission.mission_id == 0,
+                models.Mission.is_completed == True,
+            )
+            .first()
+        )
+        if not stage1:
+            raise HTTPException(status_code=400, detail="1단계를 먼저 완료해야 합니다")
+
+    db_mission = (
+        db.query(models.Mission)
+        .filter(models.Mission.match_id == match_id, models.Mission.mission_id == mission_id)
+        .first()
+    )
+    if db_mission and db_mission.is_completed:
+        raise HTTPException(status_code=400, detail="이미 완료된 미션입니다")
+
+    ext = os.path.splitext(photo.filename or "")[1] or ".jpg"
+    filename = f"{match_id}_{mission_id}_{int(datetime.utcnow().timestamp())}{ext}"
+    with open(os.path.join(UPLOAD_DIR, filename), "wb") as f:
+        f.write(await photo.read())
+
+    if not db_mission:
+        db_mission = models.Mission(match_id=match_id, mission_id=mission_id, points=100)
+        db.add(db_mission)
+
+    db_mission.title = catalog["title"]
+    db_mission.is_completed = True
+    db_mission.proof_url = filename
+    db_mission.completed_at = datetime.utcnow()
+
+    match.score += db_mission.points
+
+    db.commit()
+
+    return {"message": "완료 처리되었습니다", "progress": get_match_progress(db, match_id)}
+
+
+# 데모/테스트 전용: 진행도를 강제로 count개 완료 상태로 맞춘다.
+# 시연 리허설을 반복하거나, 무대에서 처음부터 다시 보여줄 때 리셋용.
+# 권한 검사를 하지 않으므로 실서비스에서는 반드시 제거할 것.
+@app.post("/api/matches/{match_id}/debug/set-progress")
+def debug_set_progress(match_id: int, count: int, db: Session = Depends(get_db)):
+    match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="매칭을 찾을 수 없습니다")
+
+    count = max(0, min(count, len(MISSIONS)))
+
+    db.query(models.Mission).filter(models.Mission.match_id == match_id).delete()
+    for m in MISSIONS[:count]:
+        db.add(models.Mission(
+            match_id=match_id,
+            mission_id=m["id"],
+            title=m["title"],
+            is_completed=True,
+            points=100,
+            completed_at=datetime.utcnow(),
+        ))
+
+    match.score = count * 100
+    db.commit()
+
+    return get_match_progress(db, match_id)
+
+
+@app.get("/api/mission-photos/{filename}")
+def get_mission_photo(filename: str, user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+
+    safe_name = os.path.basename(filename)
+    filepath = os.path.join(UPLOAD_DIR, safe_name)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="사진을 찾을 수 없습니다")
+
+    return FileResponse(filepath)
+
 
 @app.get("/api/leaderboard")
 def get_leaderboard(db: Session = Depends(get_db)):

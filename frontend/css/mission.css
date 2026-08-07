@@ -1,0 +1,481 @@
+:root {
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --bg-color: #0f172a;
+    --text-color: #f8fafc;
+    --muted: #64748b;
+    --done: #22c55e;
+    --locked-bg: rgba(255, 255, 255, 0.04);
+    --card-bg: rgba(255, 255, 255, 0.05);
+    --card-border: rgba(255, 255, 255, 0.1);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    min-height: 100vh;
+}
+
+.page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+}
+
+/* 상단 뒤로가기 */
+.top-bar {
+    margin-bottom: 12px;
+}
+
+.back-btn {
+    background: var(--card-bg);
+    color: var(--text-color);
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.back-btn:hover {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: var(--primary);
+}
+
+/* 임시: 이펙트 비교용 드롭다운 (고른 뒤 제거할 것) */
+.effect-picker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px dashed #f59e0b;
+    background: rgba(245, 158, 11, 0.08);
+    font-size: 12px;
+    color: #fbbf24;
+}
+
+.effect-picker select {
+    margin-left: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-color);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 3px 6px;
+}
+
+.effect-picker button {
+    background: #f59e0b;
+    color: #1e293b;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+/* 로그인 대체용 테스트 입력 (실제 로그인 연동 전까지) */
+.demo-auth {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px dashed var(--card-border);
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.demo-auth input {
+    width: 60px;
+    margin-left: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    color: var(--text-color);
+    padding: 3px 6px;
+}
+
+.demo-auth button {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* 상단 진행도 */
+.progress-header {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.progress-text {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.progress-bar {
+    margin-top: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--locked-bg);
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--primary), #a855f7);
+    border-radius: 999px;
+    transition: width 0.6s ease;
+}
+
+/* DASOM 지도 */
+.dasom-wrap {
+    position: relative;
+    margin: 20px 0 8px;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.dasom-map-img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.island-overlays {
+    position: absolute;
+    inset: 0;
+}
+
+/* 섬 하나를 덮어 어둡게 만드는 레이어. locked면 보이고, 열리면 사라짐.
+   가장자리를 radial-gradient로 흐리게 빼서 섬 윤곽과 안 맞아도 티가 덜 나게 함 */
+.island-dim {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(28, 40, 64, 0.62) 0%,
+        rgba(28, 40, 64, 0.5) 40%,
+        rgba(28, 40, 64, 0.22) 68%,
+        rgba(28, 40, 64, 0) 88%
+    );
+    transition: opacity 0.7s ease;
+    pointer-events: none;
+}
+
+/* 잠김: 그대로 어둡게 / 열림: 절반만 / 완료: 완전히 밝게 */
+.island-dim.is-open {
+    opacity: 0.45;
+}
+
+.island-dim.is-done {
+    opacity: 0;
+}
+
+/* 그림에 이미 그려진 자물쇠 배지를 덮는 흰 원 + 상태 아이콘 */
+.island-badge {
+    position: absolute;
+    width: 4.2%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: #fdfcf7;
+    border: 2px solid #d9cdbb;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(11px, 2vw, 20px);
+    line-height: 1;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+    pointer-events: none;
+}
+
+.island-badge.locked {
+    filter: grayscale(0.5);
+}
+
+.island-badge.done {
+    border-color: #f5a3bb;
+    box-shadow: 0 0 10px 2px rgba(245, 163, 187, 0.9);
+}
+
+.walker-marker {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 5%;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(13px, 2.2vw, 24px);
+    line-height: 1;
+    border-radius: 50%;
+    background: #fdfcf7;
+    border: 2px solid #f5a3bb;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    transform: translate(-50%, -50%);
+    transition: left 0.8s ease, top 0.8s ease;
+    animation: walkerBob 1.6s ease-in-out infinite;
+}
+
+@keyframes walkerBob {
+    0%, 100% { margin-top: 0; }
+    50% { margin-top: -6px; }
+}
+
+/* 미션 목록 */
+.mission-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.mission-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+}
+
+.mission-item .badge {
+    width: 26px;
+    height: 26px;
+    flex: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.mission-item .title {
+    flex: 1;
+    font-size: 14px;
+}
+
+.mission-item .stage-tag {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.mission-item.locked {
+    opacity: 0.4;
+    filter: grayscale(0.6);
+}
+
+.mission-item.open {
+    cursor: pointer;
+    border-color: var(--primary);
+}
+
+.mission-item.open:hover {
+    background: rgba(99, 102, 241, 0.12);
+}
+
+.mission-item.done {
+    border-color: var(--done);
+}
+
+.mission-item.done .badge {
+    background: var(--done);
+    color: #0f172a;
+}
+
+.mission-item.done .title {
+    color: var(--muted);
+    text-decoration: line-through;
+}
+
+/* 디버그 패널 (테스트용, 실제 배포 화면에서는 제거) */
+.debug-panel {
+    margin-top: 32px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px dashed var(--card-border);
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.debug-panel input[type="range"] {
+    width: 100%;
+    margin-top: 8px;
+}
+
+/* 사진 업로드 모달 */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.modal-overlay.open {
+    display: flex;
+}
+
+.modal-card {
+    width: 90%;
+    max-width: 360px;
+    background: #1e293b;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.modal-card h3 {
+    margin: 0 0 14px;
+    font-size: 16px;
+}
+
+.modal-card input[type="file"] {
+    width: 100%;
+    color: var(--text-color);
+    font-size: 12px;
+}
+
+.modal-msg {
+    min-height: 16px;
+    font-size: 12px;
+    color: #f59e0b;
+    margin: 10px 0 0;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.modal-actions button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-color);
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 클리어 이펙트: 도장 */
+.effect-stamp {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: var(--done);
+    border: 5px solid var(--done);
+    padding: 6px 18px;
+    border-radius: 12px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 10;
+    animation: stampIn 0.8s ease forwards;
+}
+
+@keyframes stampIn {
+    0% { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(2); }
+    30% { opacity: 1; transform: translate(-50%, -50%) rotate(-12deg) scale(0.9); }
+    45% { transform: translate(-50%, -50%) rotate(-12deg) scale(1.05); }
+    70% { transform: translate(-50%, -50%) rotate(-12deg) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(1); }
+}
+
+/* 클리어 이펙트: 컨페티 (대안, CURRENT_EFFECT를 "confetti"로 바꾸면 적용) */
+.effect-confetti-layer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.confetti-piece {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    top: 0;
+    left: 0;
+    border-radius: 2px;
+    opacity: 0;
+    animation: confettiBurst 0.8s ease-out forwards;
+}
+
+@keyframes confettiBurst {
+    0% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(360deg); }
+}
+
+/* 클리어 이펙트: 네온 링 (대안, CURRENT_EFFECT를 "neon"으로 바꾸면 적용) */
+.effect-neon-layer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.neon-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+    border-radius: 50%;
+    border: 3px solid #22d3ee;
+    box-shadow: 0 0 12px 2px #22d3ee, inset 0 0 12px 2px #22d3ee;
+    opacity: 0;
+    animation: neonExpand 0.8s ease-out forwards;
+}
+
+@keyframes neonExpand {
+    0% { transform: scale(0.3); opacity: 0.9; }
+    70% { opacity: 0.5; }
+    100% { transform: scale(6); opacity: 0; }
+}

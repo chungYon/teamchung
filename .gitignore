@@ -2,3 +2,10 @@
 *.db
 *.sqlite
 *.sqlite3
+
+# Python
+__pycache__/
+*.pyc
+
+# 미션 인증 사진 (각자 로컬에만 보관)
+backend/uploads/
