@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import FileResponse
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 import models
@@ -9,8 +10,26 @@ import schemas
 from database import engine, get_db
 from mission_data import MISSIONS
 from mission_service import get_match_progress, get_unlocked_islands
+from security import decrypt_value, encrypt_value
 
 models.Base.metadata.create_all(bind=engine)
+
+
+def migrate_phone_numbers():
+    with engine.begin() as connection:
+        rows = connection.execute(
+            text("SELECT id, phone FROM users WHERE phone IS NOT NULL AND phone != ''")
+        ).fetchall()
+        for user_id, phone in rows:
+            decrypted = decrypt_value(phone)
+            if decrypted == phone:
+                connection.execute(
+                    text("UPDATE users SET phone = :phone WHERE id = :user_id"),
+                    {"phone": encrypt_value(phone), "user_id": user_id},
+                )
+
+
+migrate_phone_numbers()
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)

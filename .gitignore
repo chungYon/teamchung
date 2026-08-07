@@ -2,6 +2,7 @@
 *.db
 *.sqlite
 *.sqlite3
+backend/.encryption.key
 
 # Python
 __pycache__/
