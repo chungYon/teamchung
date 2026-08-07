@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>멘토-멘티 매칭 시스템</title>
+    <title>Dasom Mentor Matcher</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -15,7 +15,12 @@
     </div>
     
     <nav id="navbar" class="glass-nav">
-        <div class="logo">Mentor Connect</div>
+        <div class="logo">
+            <span class="logo-mark" aria-hidden="true">
+                <img src="Pasted Image.png" alt="Dasom Mentor Matcher 로고">
+            </span>
+            <span class="logo-title">Dasom Mentor Matcher</span>
+        </div>
         <div class="nav-links">
             <button onclick="switchScreen('login')" class="active" id="btn-login">1. 로그인</button>
             <button onclick="switchScreen('profile')" id="btn-profile">2. 가입/프로필</button>
@@ -27,6 +32,12 @@
     </nav>
 
     <div class="container glass-container">
+        <div class="hero">
+            <div class="hero-text">
+                <h1>Dasom Mentor Matcher</h1>
+                <p>동아리 멘토와 멘티를 밝고 즐겁게 연결하는 플랫폼입니다.</p>
+            </div>
+        </div>
         <!-- 1. 로그인 창 -->
         <div id="login" class="screen active fade-in">
             <h2>로그인</h2>
