@@ -1,20 +1,16 @@
 :root {
-    --primary: #ff6fbf;
-    --primary-hover: #ff4da6;
-    --bg-color: #fff0f8;
-    --text-color: #2b1a32;
     --muted: #7a4d6b;
     --done: #ff90c8;
     --locked-bg: rgba(255, 223, 242, 0.7);
-    --card-bg: rgba(255, 255, 255, 0.95);
     --card-border: rgba(255, 182, 193, 0.55);
 }
 
-* { box-sizing: border-box; }
+* {
+    box-sizing: border-box;
+}
 
 body {
-    font-family: 'Inter', sans-serif;
-    background: linear-gradient(180deg, #fff0f8 0%, #ffe8f3 70%, #fff9fb 100%);
+    font-family: 'JalnanGothic', 'Inter', sans-serif;
     color: var(--text-color);
     margin: 0;
     min-height: 100vh;
@@ -85,8 +81,15 @@ body {
 }
 
 @keyframes questPulse {
-    0%, 100% { box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3); }
-    50% { box-shadow: 0 3px 18px 4px rgba(255, 111, 191, 0.75); }
+
+    0%,
+    100% {
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 3px 18px 4px rgba(255, 111, 191, 0.75);
+    }
 }
 
 /* 섬 미션 목록 팝업 */
@@ -254,13 +257,11 @@ body {
     position: absolute;
     transform: translate(-50%, -50%);
     border-radius: 50%;
-    background: radial-gradient(
-        ellipse at center,
-        rgba(28, 40, 64, 0.62) 0%,
-        rgba(28, 40, 64, 0.5) 40%,
-        rgba(28, 40, 64, 0.22) 68%,
-        rgba(28, 40, 64, 0) 88%
-    );
+    background: radial-gradient(ellipse at center,
+            rgba(28, 40, 64, 0.62) 0%,
+            rgba(28, 40, 64, 0.5) 40%,
+            rgba(28, 40, 64, 0.22) 68%,
+            rgba(28, 40, 64, 0) 88%);
     transition: opacity 0.7s ease;
     pointer-events: none;
 }
@@ -321,8 +322,15 @@ body {
 }
 
 @keyframes walkerBob {
-    0%, 100% { margin-top: 0; }
-    50% { margin-top: -6px; }
+
+    0%,
+    100% {
+        margin-top: 0;
+    }
+
+    50% {
+        margin-top: -6px;
+    }
 }
 
 /* 미션 목록 */
@@ -504,11 +512,28 @@ body {
 }
 
 @keyframes stampIn {
-    0% { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(2); }
-    30% { opacity: 1; transform: translate(-50%, -50%) rotate(-12deg) scale(0.9); }
-    45% { transform: translate(-50%, -50%) rotate(-12deg) scale(1.05); }
-    70% { transform: translate(-50%, -50%) rotate(-12deg) scale(1); }
-    100% { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(1); }
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(-12deg) scale(2);
+    }
+
+    30% {
+        opacity: 1;
+        transform: translate(-50%, -50%) rotate(-12deg) scale(0.9);
+    }
+
+    45% {
+        transform: translate(-50%, -50%) rotate(-12deg) scale(1.05);
+    }
+
+    70% {
+        transform: translate(-50%, -50%) rotate(-12deg) scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(-12deg) scale(1);
+    }
 }
 
 /* 클리어 이펙트: 컨페티 (대안, CURRENT_EFFECT를 "confetti"로 바꾸면 적용) */
@@ -534,8 +559,15 @@ body {
 }
 
 @keyframes confettiBurst {
-    0% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
-    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(360deg); }
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(var(--dx), var(--dy)) rotate(360deg);
+    }
 }
 
 /* 클리어 이펙트: 네온 링 (대안, CURRENT_EFFECT를 "neon"으로 바꾸면 적용) */
@@ -564,7 +596,17 @@ body {
 }
 
 @keyframes neonExpand {
-    0% { transform: scale(0.3); opacity: 0.9; }
-    70% { opacity: 0.5; }
-    100% { transform: scale(6); opacity: 0; }
+    0% {
+        transform: scale(0.3);
+        opacity: 0.9;
+    }
+
+    70% {
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(6);
+        opacity: 0;
+    }
 }
