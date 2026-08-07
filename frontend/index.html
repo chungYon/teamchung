@@ -22,6 +22,7 @@
             <button onclick="switchScreen('matching')" id="btn-matching" style="display:none;">3. 매칭 현황</button>
             <button onclick="switchScreen('mission')" id="btn-mission" style="display:none;">4. 미션 보드</button>
             <button onclick="switchScreen('score')" id="btn-score">5. 리더보드</button>
+            <button onclick="switchScreen('users')" id="btn-users" style="display:none;">6. 회원 목록</button>
         </div>
     </nav>
 
@@ -138,6 +139,28 @@
                     </tr>
                 </thead>
                 <tbody id="leaderboard-body">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 6. 회원 목록 창 -->
+        <div id="users" class="screen fade-in">
+            <h2>전체 회원 목록 (관리자 모드)</h2>
+            <div class="actions">
+                <button class="btn-secondary" onclick="fetchUsers()">회원 목록 새로고침</button>
+            </div>
+            <table class="glass-table">
+                <thead>
+                    <tr>
+                        <th>ID (이름)</th>
+                        <th>역할</th>
+                        <th>MBTI</th>
+                        <th>거주지</th>
+                        <th>취미</th>
+                        <th>상태</th>
+                    </tr>
+                </thead>
+                <tbody id="users-body">
                 </tbody>
             </table>
         </div>

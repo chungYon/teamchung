@@ -2,6 +2,36 @@ const API_BASE_URL = 'http://localhost:8000';
 let currentUserId = null;
 let currentMatchId = null;
 
+async function fetchUsers() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/users`);
+        const data = await response.json();
+        
+        const tbody = document.getElementById('users-body');
+        tbody.innerHTML = '';
+        
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6">가입된 회원이 없습니다.</td></tr>`;
+            return;
+        }
+        
+        data.forEach(user => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${user.username}</strong><br><span style="color:#a855f7;">${user.name}</span></td>
+                <td>${user.is_mentor ? '<span style="color:#10b981;">멘토(재학생)</span>' : '<span style="color:#3b82f6;">멘티(신입생)</span>'}</td>
+                <td>${user.mbti}</td>
+                <td>${user.living_type}</td>
+                <td style="font-size:0.9em; max-width:150px;">${user.hobbies}</td>
+                <td>${user.match_status === 'matched' ? '<span style="color:#10b981;">매칭됨</span>' : '대기중'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch(e) {
+        console.error(e);
+    }
+}
+
 function switchScreen(screenId) {
     // Hide all screens
     document.querySelectorAll('.screen').forEach(screen => {
@@ -25,6 +55,8 @@ function switchScreen(screenId) {
         fetchMissions();
     } else if(screenId === 'score') {
         fetchLeaderboard();
+    } else if(screenId === 'users') {
+        fetchUsers();
     }
 }
 
@@ -62,6 +94,7 @@ async function login() {
             const userData = await userRes.json();
             if(userData.is_mentor) {
                 document.getElementById('assign-mission-admin').style.display = 'block'; // Mock ADMIN rights
+                document.getElementById('btn-users').style.display = 'inline-block';
             }
             
             setTimeout(() => switchScreen('matching'), 500);

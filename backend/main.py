@@ -164,3 +164,7 @@ def get_leaderboard(db: Session = Depends(get_db)):
                 "score": m.score
             })
     return result
+
+@app.get("/api/users", response_model=List[schemas.UserResponse])
+def get_all_users(db: Session = Depends(get_db)):
+    return db.query(models.User).all()
