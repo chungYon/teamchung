@@ -1,6 +1,32 @@
 const API_BASE_URL = 'http://localhost:8000';
 let currentUserId = null;
 let currentMatchId = null;
+let isAdmin = false;
+
+const missionIslandOverlays = {
+    D: { dim: { x: 10, y: 49, w: 16, h: 33 }, badge: { x: 9.1, y: 60.7 } },
+    A: { dim: { x: 32, y: 40, w: 23, h: 33 }, badge: { x: 33.3, y: 49.8 } },
+    S: { dim: { x: 53.5, y: 37, w: 17, h: 29 }, badge: { x: 53.5, y: 49.8 } },
+    O: { dim: { x: 70.6, y: 44, w: 16.5, h: 29 }, badge: { x: 70.8, y: 56.1 } },
+    M: { dim: { x: 89, y: 52, w: 19, h: 35 }, badge: { x: 88.9, y: 64.6 } },
+};
+
+const missionWaypoints = [
+    { x: 48, y: 78 },
+    { x: 10, y: 45 },
+    { x: 31, y: 38 },
+    { x: 41, y: 38 },
+    { x: 53, y: 36 },
+    { x: 66, y: 40 },
+    { x: 75, y: 40 },
+    { x: 86, y: 48 },
+    { x: 93, y: 48 },
+];
+
+let missionOverlayElems = {};
+let missionBadgeElems = {};
+
+const MISSION_PROGRESS_COUNT = 8;
 
 const HOBBIES = {
     "운동": ["러닝", "헬스", "테니스", "클라이밍", "자전거"],
@@ -80,10 +106,15 @@ function switchScreen(screenId) {
     if (btn) btn.classList.add('active');
 
     // Auto load data depending on screen
-    if(screenId === 'matching' && currentUserId) {
+    if(screenId === 'matching' && (currentUserId || isAdmin)) {
         fetchMyMatch();
-    } else if(screenId === 'mission' && currentMatchId) {
-        fetchMissions();
+    } else if(screenId === 'mission') {
+        if (!currentMatchId) {
+            alert('아직 매칭이 완료되지 않았습니다. 먼저 매칭 현황을 확인해 주세요.');
+            switchScreen('matching');
+            return;
+        }
+        initializeMissionBoard();
     } else if(screenId === 'score') {
         fetchLeaderboard();
     } else if(screenId === 'users') {
@@ -113,22 +144,29 @@ async function login() {
         if (response.ok) {
             const data = await response.json();
             currentUserId = data.user_id;
+            isAdmin = data.is_admin === true;
             msgEl.innerText = "로그인 성공!";
             msgEl.style.color = "#34d399";
             
-            // Show new nav buttons
+            // show common 퀵탭
             document.getElementById('btn-matching').style.display = 'inline-block';
-            document.getElementById('btn-mission').style.display = 'inline-block';
-            
-            // fetch user info to know role
-            const userRes = await fetch(`${API_BASE_URL}/users/${currentUserId}`);
-            const userData = await userRes.json();
-            if(userData.is_mentor) {
-                document.getElementById('assign-mission-admin').style.display = 'block'; // Mock ADMIN rights
-                document.getElementById('btn-users').style.display = 'inline-block';
+            document.getElementById('btn-mission').style.display = 'none';
+            document.getElementById('btn-users').style.display = isAdmin ? 'inline-block' : 'none';
+            document.getElementById('btn-admin-match').style.display = isAdmin ? 'inline-block' : 'none';
+            document.getElementById('assign-mission-admin').style.display = isAdmin ? 'block' : 'none';
+            document.getElementById('admin-match-result').style.display = 'none';
+
+            if (!isAdmin) {
+                const userRes = await fetch(`${API_BASE_URL}/users/${currentUserId}`);
+                const userData = await userRes.json();
+
+                if (userData.is_mentor) {
+                    document.getElementById('assign-mission-admin').style.display = 'none';
+                }
             }
             
-            setTimeout(() => switchScreen('matching'), 500);
+            fetchMyMatch();
+            switchScreen('matching');
         } else {
             const error = await response.json();
             msgEl.innerText = error.detail || "로그인 실패";
@@ -194,29 +232,45 @@ async function register() {
 
 // 3. 매칭 현황 관리자 트리거
 async function triggerMatching() {
+    if (!isAdmin) {
+        alert("관리자 계정(Admin/Admin)으로 로그인해야 합니다.");
+        return;
+    }
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/match`, { method: 'POST' });
         const data = await response.json();
-        alert(data.message);
+        document.getElementById('admin-match-result').style.display = 'block';
+        document.getElementById('admin-match-result').innerText = `매칭 실행 완료: ${data.message}`;
         fetchMyMatch();
     } catch (e) {
-        alert("매칭 실패");
+        document.getElementById('admin-match-result').style.display = 'block';
+        document.getElementById('admin-match-result').innerText = '매칭 실행 중 오류가 발생했습니다.';
     }
 }
 
 // 3-1. 내 매칭 정보
 async function fetchMyMatch() {
-    if (!currentUserId) return;
     const infoEl = document.getElementById('match-info');
+    if (isAdmin) {
+        document.getElementById('admin-match-result').style.display = 'block';
+        document.getElementById('admin-match-result').innerText = "관리자 계정입니다. 매칭 알고리즘 실행 후 결과를 확인할 수 있습니다.";
+        infoEl.innerHTML = `<p>관리자님은 팀 매칭 결과가 없습니다. 좌측에서 매칭 알고리즘을 실행해주세요.</p>`;
+        return;
+    }
+    if (!currentUserId) return;
     
     try {
         const response = await fetch(`${API_BASE_URL}/api/users/${currentUserId}/match`);
         const data = await response.json();
         
         if (data.status === "unmatched") {
+            currentMatchId = null;
+            document.getElementById('btn-mission').style.display = 'none';
             infoEl.innerHTML = `<p>아직 매칭되지 않았습니다. 관리자(또는 알고리즘)가 매칭할 때까지 기다려주세요.</p>`;
         } else {
             currentMatchId = data.match_id;
+            document.getElementById('btn-mission').style.display = 'inline-block';
             infoEl.innerHTML = `
                 <h3>내 파트너 정보 (Match ID: ${data.match_id})</h3>
                 <p><strong>상태:</strong> 매칭 완료</p>
@@ -226,6 +280,7 @@ async function fetchMyMatch() {
                 <p><strong>파트너 취미 키워드:</strong> ${data.partner_hobbies}</p>
                 <button class="btn-submit" style="background-color: var(--primary); margin-top:15px; width:auto;" onclick="alert('준비중인 기능입니다 (채팅 등)')">연락하기</button>
             `;
+            fetchMissions();
         }
     } catch (e) {
         infoEl.innerHTML = `<p style="color:var(--primary);">매칭 정보를 가져오는 데 실패했습니다.</p>`;
@@ -264,79 +319,137 @@ async function adminAssignMission() {
 }
 
 // 4. 팀 미션 가져오기 및 렌더링
+function initializeMissionBoard() {
+    buildMissionOverlay();
+    fetchMissions();
+}
+
+function buildMissionOverlay() {
+    const overlays = document.getElementById('mission-island-overlays');
+    if (!overlays || Object.keys(missionOverlayElems).length > 0) return;
+
+    Object.entries(missionIslandOverlays).forEach(([key, meta]) => {
+        const dim = document.createElement('div');
+        dim.className = 'island-dim';
+        dim.style.left = `${meta.dim.x}%`;
+        dim.style.top = `${meta.dim.y}%`;
+        dim.style.width = `${meta.dim.w}%`;
+        dim.style.height = `${meta.dim.h}%`;
+        overlays.appendChild(dim);
+        missionOverlayElems[key] = dim;
+
+        const badge = document.createElement('div');
+        badge.className = 'island-badge';
+        badge.style.left = `${meta.badge.x}%`;
+        badge.style.top = `${meta.badge.y}%`;
+        overlays.appendChild(badge);
+        missionBadgeElems[key] = badge;
+    });
+}
+
 async function fetchMissions() {
     if (!currentMatchId) {
-        document.getElementById('mission-list').innerHTML = `<p>배정된 미션이 없거나 매칭 정보가 없습니다.</p>`;
+        document.getElementById('missionList').innerHTML = `<p>배정된 미션이 없거나 매칭 정보가 없습니다.</p>`;
         return;
     }
-    
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/matches/${currentMatchId}/missions`);
         const missions = await response.json();
-        
-        let html = '';
-        if (missions.length === 0) {
-            html = `<p>현재 진행중인 미션이 없습니다.</p>`;
-        } else {
-            missions.forEach(m => {
-                const status = m.is_completed ? `<span style="color:#10b981; font-weight:bold;">완료됨</span>` : `<span style="color:#f59e0b; font-weight:bold;">진행 중</span>`;
-                
-                let actionHtml = '';
-                if (!m.is_completed) {
-                    actionHtml = `
-                        <div class="form-group" style="margin-top:15px;">
-                            <label>미션 인증 (인증 사진 이미지 URL 또는 텍스트 리뷰)</label>
-                            <input type="text" id="proof-${m.id}" placeholder="인증 정보(링크)를 입력하세요">
-                        </div>
-                        <button class="btn-submit" onclick="submitMission(${m.id})">미션 제출 및 포인트 획득하기</button>
-                    `;
-                } else {
-                    actionHtml = `
-                        <div style="margin-top:10px; padding:12px; border-left:4px solid #10b981; background:rgba(0,0,0,0.2); border-radius: 4px;">
-                            <strong style="color:white;">제출된 결과: </strong> <a href="${m.proof_url}" target="_blank" style="color:#a855f7; word-break: break-all;">${m.proof_url}</a>
-                        </div>
-                    `;
-                }
-                
-                html += `
-                    <div class="card glass-card">
-                        <h3 style="margin-bottom: 5px;">${m.title} <span style="font-size:0.9rem; color:#ebb305; background:rgba(235, 179, 5, 0.2); padding:3px 8px; border-radius:12px;">+${m.points} 점</span></h3>
-                        <p style="color: #cbd5e1; margin-bottom: 12px; font-size: 0.95rem;"><strong>설명:</strong> ${m.description}</p>
-                        <p><strong>상태:</strong> ${status}</p>
-                        ${actionHtml}
-                    </div>
-                `;
-            });
+
+        if (!Array.isArray(missions) || missions.length === 0) {
+            document.getElementById('missionList').innerHTML = `<p>현재 진행중인 미션이 없습니다.</p>`;
+            return;
         }
-        document.getElementById('mission-list').innerHTML = html;
+
+        const completedCount = missions.filter(m => m.is_completed).length;
+        document.getElementById('mission-completed-count').textContent = completedCount;
+        document.getElementById('mission-progress-bar-fill').style.width = `${(completedCount / MISSION_PROGRESS_COUNT) * 100}%`;
+
+        renderMissionIslandStates(missions);
+        renderMissionList(missions);
     } catch (e) {
         console.error(e);
+        document.getElementById('missionList').innerHTML = `<p>미션을 불러오는 중 오류가 발생했습니다.</p>`;
     }
 }
 
-async function submitMission(missionId) {
-    const proofUrl = document.getElementById(`proof-${missionId}`).value;
-    if (!proofUrl) {
-        alert("인증 링크/내용을 입력해주세요.");
-        return;
-    }
-    
+function renderMissionIslandStates(missions) {
+    Object.keys(missionIslandOverlays).forEach((islandKey) => {
+        const islandMissions = missions.filter((m) => m.island === islandKey);
+        const firstStageDone = islandMissions.some((m) => m.mission_id === 0 && m.is_completed);
+        const isLocked = islandMissions.some((m) => !m.is_completed && m.mission_id !== 0 && !firstStageDone);
+        const isDone = islandMissions.length > 0 && islandMissions.every((m) => m.is_completed);
+
+        const dim = missionOverlayElems[islandKey];
+        const badge = missionBadgeElems[islandKey];
+        if (!dim || !badge) return;
+
+        dim.classList.toggle('is-open', !isLocked && !isDone);
+        dim.classList.toggle('is-done', isDone);
+        dim.classList.toggle('is-open', !isLocked && !isDone);
+
+        badge.classList.toggle('locked', isLocked);
+        badge.classList.toggle('done', isDone);
+        badge.textContent = isDone ? '🏁' : isLocked ? '🔒' : '❤️';
+    });
+}
+
+function renderMissionList(missions) {
+    const listEl = document.getElementById('missionList');
+    listEl.innerHTML = '';
+
+    missions.forEach((mission, index) => {
+        const item = document.createElement('div');
+        item.className = `mission-item ${mission.is_completed ? 'done' : mission.mission_id !== 0 && !missions.some((m) => m.mission_id === 0 && m.is_completed) ? 'locked' : 'open'}`;
+
+        const badge = document.createElement('div');
+        badge.className = 'badge';
+        badge.textContent = mission.is_completed ? '✓' : mission.mission_id === 0 ? 'D' : `${index + 1}`;
+
+        const title = document.createElement('div');
+        title.className = 'title';
+        title.textContent = mission.title;
+
+        const stageTag = document.createElement('div');
+        stageTag.className = 'stage-tag';
+        stageTag.textContent = `${mission.island} 섬`;
+
+        item.appendChild(badge);
+        item.appendChild(title);
+        item.appendChild(stageTag);
+
+        if (!mission.is_completed && (mission.mission_id === 0 || missions.some((m) => m.mission_id === 0 && m.is_completed))) {
+            item.addEventListener('click', () => openMissionSubmit(mission));
+        }
+
+        listEl.appendChild(item);
+    });
+}
+
+function openMissionSubmit(mission) {
+    const proof = prompt(`'${mission.title}' 미션 인증 URL 또는 텍스트를 입력하세요`);
+    if (!proof) return;
+    submitMission(mission.id, proof);
+}
+
+async function submitMission(missionId, proof) {
     try {
         const response = await fetch(`${API_BASE_URL}/api/missions/${missionId}/submit`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ proof_url: proofUrl })
+            body: JSON.stringify({ proof_url: proof })
         });
-        
+
         if (response.ok) {
-            const data = await response.json();
-            alert(`미션 완료! ${data.points_earned} 점을 획득했습니다.`);
-            fetchMissions(); // reload missions
+            await response.json();
+            alert('미션 제출 완료되었습니다.');
+            fetchMissions();
         } else {
-            alert("미션 제출 실패");
+            alert('미션 제출에 실패했습니다.');
         }
     } catch (e) {
-        alert("통신 오류가 발생했습니다.");
+        alert('통신 오류가 발생했습니다.');
     }
 }
 

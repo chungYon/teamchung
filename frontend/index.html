@@ -7,6 +7,7 @@
     <link rel="icon" href="img/cupid_logo.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/mission.css">
 </head>
 <body>
     <div class="background-shapes">
@@ -24,11 +25,10 @@
         </div>
         <div class="nav-links">
             <button onclick="switchScreen('login')" class="active" id="btn-login">1. 로그인</button>
-            <button onclick="switchScreen('profile')" id="btn-profile">2. 가입/프로필</button>
-            <button onclick="switchScreen('matching')" id="btn-matching" style="display:none;">3. 매칭 현황</button>
-            <button onclick="goToMissionMap()" id="btn-mission" style="display:none;">4. 미션 보드</button>
-            <button onclick="switchScreen('score')" id="btn-score">5. 리더보드</button>
-            <button onclick="switchScreen('users')" id="btn-users" style="display:none;">6. 회원 목록</button>
+            <button onclick="switchScreen('matching')" id="btn-matching" style="display:none;">2. 매칭 현황</button>
+            <button onclick="switchScreen('mission')" id="btn-mission" style="display:none;">3. 미션 보드</button>
+            <button onclick="switchScreen('score')" id="btn-score">4. 리더보드</button>
+            <button onclick="switchScreen('users')" id="btn-users" style="display:none;">5. 회원 목록</button>
         </div>
     </nav>
 
@@ -39,7 +39,7 @@
                 <p>핑크빛 큐피드가 동아리 멘토와 멘티를 사랑스럽게 이어줍니다.</p>
             </div>
         </div>
-        <!-- 1. 로그인 창 -->
+        <!-- 1. 로그인 + 회원가입 창 -->
         <div id="login" class="screen active fade-in">
             <h2>로그인</h2>
             <div class="form-group">
@@ -52,66 +52,71 @@
             </div>
             <button class="btn-submit" onclick="login()">로그인 실행</button>
             <p id="login-msg" class="msg"></p>
+            <p class="login-note" style="margin-top:15px;">회원가입이 처음이신가요? <button class="btn-secondary" onclick="switchScreen('signup')">회원가입 화면으로</button></p>
         </div>
 
-        <!-- 2. 프로필 입력 창 -->
-        <div id="profile" class="screen fade-in">
-            <h2>프로필 입력 (회원가입)</h2>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>아이디</label>
-                    <input type="text" id="reg-id" placeholder="ID">
-                </div>
-                <div class="form-group">
-                    <label>비밀번호</label>
-                    <input type="password" id="reg-pwd">
-                </div>
-                <div class="form-group">
-                    <label>이름</label>
-                    <input type="text" id="reg-name">
-                </div>
-                <div class="form-group">
-                    <label>성별</label>
-                    <select id="reg-gender"><option value="M">남성</option><option value="F">여성</option></select>
-                </div>
-                <div class="form-group">
-                    <label>나이</label>
-                    <input type="number" id="reg-age" value="20">
-                </div>
-                <div class="form-group">
-                    <label>MBTI</label>
-                    <input type="text" id="reg-mbti" placeholder="예: INTP">
-                </div>
-                <div class="form-group">
-                    <label>주거 형태</label>
-                    <select id="reg-living"><option value="자취">자취</option><option value="통학">통학</option><option value="기숙사">기숙사</option></select>
-                </div>
-                <div class="form-group">
-                    <label>학적 상태 (역할)</label>
-                    <select id="reg-role"><option value="false">신입생 (멘티)</option><option value="true">재학생 (멘토)</option></select>
-                </div>
-                <div class="form-group span-2">
-                    <label>휴대폰 번호</label>
-                    <input type="text" id="reg-phone" placeholder="010-0000-0000">
-                </div>
-                <div class="form-group span-2">
-                    <label>취미 (관심 분야 다중 선택)</label>
-                    <div id="hobbies-container" style="display: flex; flex-wrap: wrap; gap: 15px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
-                        <!-- JS로 취미 카테고리 렌더링 예정 -->
+        <!-- 2. 회원가입 창 -->
+        <div id="signup" class="screen fade-in">
+            <h2>새로운 다소미 가입</h2>
+            <div class="signup-box">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>아이디</label>
+                        <input type="text" id="reg-id" placeholder="ID">
+                    </div>
+                    <div class="form-group">
+                        <label>비밀번호</label>
+                        <input type="password" id="reg-pwd">
+                    </div>
+                    <div class="form-group">
+                        <label>이름</label>
+                        <input type="text" id="reg-name">
+                    </div>
+                    <div class="form-group">
+                        <label>성별</label>
+                        <select id="reg-gender"><option value="M">남성</option><option value="F">여성</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>나이</label>
+                        <input type="number" id="reg-age" value="20">
+                    </div>
+                    <div class="form-group">
+                        <label>MBTI</label>
+                        <input type="text" id="reg-mbti" placeholder="예: INTP">
+                    </div>
+                    <div class="form-group">
+                        <label>주거 형태</label>
+                        <select id="reg-living"><option value="자취">자취</option><option value="통학">통학</option><option value="기숙사">기숙사</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>학적 상태 (역할)</label>
+                        <select id="reg-role"><option value="false">신입생 (멘티)</option><option value="true">재학생 (멘토)</option></select>
+                    </div>
+                    <div class="form-group span-2">
+                        <label>휴대폰 번호</label>
+                        <input type="text" id="reg-phone" placeholder="010-0000-0000">
+                    </div>
+                    <div class="form-group span-2">
+                        <label>취미 (관심 분야 다중 선택)</label>
+                        <div id="hobbies-container" class="hobbies-grid">
+                            <!-- JS로 취미 카테고리 렌더링 예정 -->
+                        </div>
                     </div>
                 </div>
+                <button class="btn-submit" onclick="register()">회원가입 실행</button>
+                <p id="reg-msg" class="msg"></p>
+                <p class="login-note" style="margin-top:15px;">이미 계정이 있으신가요? <button class="btn-secondary" onclick="switchScreen('login')">로그인 화면으로</button></p>
             </div>
-            <button class="btn-submit" onclick="register()">프로필 저장 후 가입</button>
-            <p id="reg-msg" class="msg"></p>
         </div>
 
         <!-- 3. 매칭 창 -->
         <div id="matching" class="screen fade-in">
             <h2>매칭 결과</h2>
             <div class="actions">
-                <button class="btn-secondary" onclick="triggerMatching()" id="btn-admin-match">서버 매칭 알고리즘 실행 (관리자용)</button>
+                <button class="btn-secondary" onclick="triggerMatching()" id="btn-admin-match" style="display:none;">매칭 알고리즘 실행</button>
                 <button class="btn-secondary" onclick="fetchMyMatch()">내 매칭 정보 새로고침</button>
             </div>
+            <div class="admin-note" id="admin-match-result" style="display:none;"></div>
             <div class="card glass-card" id="match-info">
                 <h3>내 파트너 정보</h3>
                 <p>아직 매칭 정보를 불러오지 않았거나, 매칭되지 않았습니다.</p>
@@ -124,7 +129,16 @@
             <div class="actions">
                 <button class="btn-secondary" onclick="fetchMissions()">우리 팀 미션 새로고침</button>
             </div>
-            <div id="mission-list">
+            <div class="progress-header">
+                <div class="progress-text"><span id="mission-completed-count">0</span> / 8</div>
+                <div class="progress-bar"><div class="progress-bar-fill" id="mission-progress-bar-fill"></div></div>
+            </div>
+            <div class="dasom-wrap">
+                <img src="img/dasom-map.png" alt="DASOM 진행 지도" class="dasom-map-img">
+                <div class="island-overlays" id="mission-island-overlays"></div>
+                <div id="mission-walker" class="walker-marker">🐾</div>
+            </div>
+            <div class="mission-list" id="missionList">
                 <!-- Missions will be injected here -->
             </div>
             <div class="card glass-card" id="assign-mission-admin" style="margin-top:20px; border: 1px dashed #a855f7; display:none;">
@@ -182,26 +196,13 @@
 
     <script src="js/app.js"></script>
     <script>
-    // 미션 보드 = DASOM 지도 화면(mission.html)으로 이동.
-    // 로그인/매칭 정보를 URL로 넘겨서 지도가 바로 내 팀 진행상황을 불러오게 한다.
-    function goToMissionMap() {
-        if (!currentMatchId) {
-            alert("먼저 '3. 매칭 현황'에서 내 매칭을 확인해주세요.");
-            switchScreen('matching');
-            return;
-        }
-        saveSession();
-        location.href = `mission.html?user_id=${currentUserId}&match_id=${currentMatchId}`;
-    }
-
-    // 지도 화면에 다녀와도 로그인이 풀리지 않도록 세션을 저장/복원한다.
-    // (페이지를 이동하면 app.js의 currentUserId가 초기화되기 때문)
     const SESSION_KEY = 'dasom_session';
 
     function saveSession() {
         localStorage.setItem(SESSION_KEY, JSON.stringify({
             userId: currentUserId,
-            matchId: currentMatchId
+            matchId: currentMatchId,
+            isAdmin: isAdmin
         }));
     }
 
@@ -220,39 +221,41 @@
             clearSession();
             return;
         }
-        if (!saved.userId) return;
-
-        // 저장된 유저가 실제로 있는지 확인 (DB를 지웠는데 세션만 남은 경우 방지)
-        let user;
-        try {
-            const res = await fetch(`${API_BASE_URL}/users/${saved.userId}`);
-            if (!res.ok) throw new Error();
-            user = await res.json();
-        } catch (e) {
-            clearSession();
-            return;
-        }
+        if (!saved.userId && !saved.isAdmin) return;
 
         currentUserId = saved.userId;
         currentMatchId = saved.matchId;
+        isAdmin = saved.isAdmin === true;
 
         document.getElementById('btn-matching').style.display = 'inline-block';
         document.getElementById('btn-mission').style.display = 'inline-block';
-        if (user.is_mentor) {
-            document.getElementById('assign-mission-admin').style.display = 'block';
-            document.getElementById('btn-users').style.display = 'inline-block';
+        document.getElementById('btn-users').style.display = isAdmin ? 'inline-block' : 'none';
+        document.getElementById('btn-admin-match').style.display = isAdmin ? 'inline-block' : 'none';
+        document.getElementById('assign-mission-admin').style.display = isAdmin ? 'block' : 'none';
+
+        if (!isAdmin) {
+            try {
+                const res = await fetch(`${API_BASE_URL}/users/${saved.userId}`);
+                if (!res.ok) throw new Error();
+            } catch (e) {
+                clearSession();
+                return;
+            }
         }
 
         switchScreen('matching');
     }
 
-    // app.js를 직접 고치지 않고, 로그인 성공 시점에도 세션이 저장되도록 감싼다.
-    // (다른 계정으로 다시 로그인했을 때 예전 세션이 남아있는 것을 막기 위함)
     const _originalLogin = window.login;
     window.login = async function () {
+        currentUserId = null;
+        isAdmin = false;
         clearSession();
         await _originalLogin.apply(this, arguments);
-        if (currentUserId) saveSession();
+        if (currentUserId || isAdmin) {
+            saveSession();
+            fetchMyMatch();
+        }
     };
 
     window.addEventListener('load', restoreSession);
