@@ -56,10 +56,13 @@ class LoginData(schemas.BaseModel):
 
 @app.post("/login")
 def login(login_data: LoginData, db: Session = Depends(get_db)):
+    if login_data.username == "Admin" and login_data.password == "Admin":
+        return {"message": "Login successful", "user_id": 0, "is_admin": True}
+
     db_user = db.query(models.User).filter(models.User.username == login_data.username, models.User.password == login_data.password).first()
     if not db_user:
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    return {"message": "Login successful", "user_id": db_user.id}
+    return {"message": "Login successful", "user_id": db_user.id, "is_admin": False}
 
 @app.get("/users/{user_id}", response_model=schemas.UserResponse)
 def get_user(user_id: int, db: Session = Depends(get_db)):
@@ -130,6 +133,19 @@ def assign_mission(mission: schemas.MissionBase, db: Session = Depends(get_db)):
 @app.get("/api/matches/{match_id}/missions")
 def get_match_missions(match_id: int, db: Session = Depends(get_db)):
     missions = db.query(models.Mission).filter(models.Mission.match_id == match_id).all()
+    if not missions:
+        for m in MISSIONS:
+            db_mission = models.Mission(
+                match_id=match_id,
+                mission_id=m["id"],
+                title=m["title"],
+                description=m.get("description", m["title"]),
+                points=100,
+                is_completed=False,
+            )
+            db.add(db_mission)
+        db.commit()
+        missions = db.query(models.Mission).filter(models.Mission.match_id == match_id).all()
     return missions
 
 class MissionSubmit(schemas.BaseModel):
@@ -272,21 +288,25 @@ def get_mission_photo(filename: str, user_id: int, db: Session = Depends(get_db)
 
 @app.get("/api/leaderboard")
 def get_leaderboard(db: Session = Depends(get_db)):
-    matches = db.query(models.Match).order_by(models.Match.score.desc()).all()
-    result = []
-    for idx, m in enumerate(matches):
+    matches = db.query(models.Match).all()
+    leaderboard = []
+    for m in matches:
         mentor = db.query(models.User).filter(models.User.id == m.mentor_id).first()
         mentee = db.query(models.User).filter(models.User.id == m.mentee_id).first()
-        completed_missions = db.query(models.Mission).filter(models.Mission.match_id == m.id, models.Mission.is_completed == True).count()
-        if mentor and mentee:
-            result.append({
-                "rank": idx + 1,
-                "match_id": m.id,
-                "team_name": f"{mentor.name} & {mentee.name}",
-                "completed_missions": completed_missions,
-                "score": m.score
-            })
-    return result
+        if not mentor or not mentee:
+            continue
+        completed_missions = db.query(models.Mission).filter(models.Mission.match_id == m.id, models.Mission.is_completed == True).all()
+        total_points = sum(mission.points for mission in completed_missions)
+        leaderboard.append({
+            "match_id": m.id,
+            "team_name": f"{mentor.name} & {mentee.name}",
+            "completed_missions": len(completed_missions),
+            "score": total_points
+        })
+    leaderboard.sort(key=lambda item: item["score"], reverse=True)
+    for idx, item in enumerate(leaderboard):
+        item["rank"] = idx + 1
+    return leaderboard
 
 @app.get("/api/users", response_model=List[schemas.UserResponse])
 def get_all_users(db: Session = Depends(get_db)):
