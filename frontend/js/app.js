@@ -17,18 +17,15 @@ const missionIslandOverlays = {
 const ISLAND_ORDER = ['D', 'A', 'S', 'O', 'M'];
 const ISLAND_LABEL = { D: '첫 만남', A: '추억 쌓기', S: '함께하는 시간', O: '마음 나누기', M: '사랑과 우정 완성' };
 
-// 캐릭터 위치. 섬의 ? 마커(위)와 상태 배지(아래) 사이에 놓아 겹치지 않게 한다.
-const missionWaypoints = [
-    { x: 48, y: 76 }, // 0: START 섬
-    { x: 15, y: 53 }, // 1: D 완료
-    { x: 27, y: 45 }, // 2: A 미션1
-    { x: 39, y: 45 }, // 3: A 미션2
-    { x: 58, y: 43 }, // 4: S 완료
-    { x: 66, y: 50 }, // 5: O 미션1
-    { x: 76, y: 50 }, // 6: O 미션2
-    { x: 84, y: 58 }, // 7: M 미션1
-    { x: 93, y: 58 }, // 8: M 미션2 (완주)
-];
+// 캐릭터가 서는 자리. 섬마다 한 곳뿐이며, 그 섬 미션을 전부 깨야 다음 섬으로 넘어간다.
+// ? 마커(섬 위쪽)와 상태 배지(섬 아래쪽) 사이에 놓아 둘 다 가리지 않게 한다.
+const missionWalkPoints = {
+    D: { x: 13.5, y: 55 },
+    A: { x: 36, y: 46 },
+    S: { x: 57.5, y: 43 },
+    O: { x: 74.5, y: 50 },
+    M: { x: 93, y: 58 },
+};
 
 let missionOverlayElems = {};
 let missionBadgeElems = {};
@@ -107,7 +104,7 @@ function setupMissionDebugSlider() {
         document.getElementById('mission-completed-count').textContent = count;
         document.getElementById('mission-progress-bar-fill').style.width = `${(count / MISSION_PROGRESS_COUNT) * 100}%`;
         renderMissionIslandStates(preview);
-        updateMissionWalker(count);
+        updateMissionWalker(preview);
     });
 }
 
@@ -624,18 +621,23 @@ async function fetchMissions() {
 
         setMapHint('섬 위의 ? 를 눌러 그 섬의 미션을 확인하세요.');
         renderMissionIslandStates(missions);
-        updateMissionWalker(completedCount);
+        updateMissionWalker(missions);
     } catch (e) {
         console.error(e);
         setMapHint('미션을 불러오는 중 오류가 발생했습니다.');
     }
 }
 
-function updateMissionWalker(completedCount) {
+// 지금 진행중인 섬 = 아직 안 깬 첫 번째 섬. 전부 깼으면 마지막 섬에 남는다.
+function updateMissionWalker(missions) {
     const walker = document.getElementById('mission-walker');
     if (!walker) return;
-    const index = Math.max(0, Math.min(completedCount, missionWaypoints.length - 1));
-    const point = missionWaypoints[index];
+
+    const states = getIslandStates(missions);
+    const current = ISLAND_ORDER.find((k) => states[k].state !== 'done')
+        || ISLAND_ORDER[ISLAND_ORDER.length - 1];
+
+    const point = missionWalkPoints[current];
     walker.style.left = `${point.x}%`;
     walker.style.top = `${point.y}%`;
 }
