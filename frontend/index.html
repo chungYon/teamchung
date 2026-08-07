@@ -150,9 +150,7 @@
                 <div class="island-overlays" id="mission-island-overlays"></div>
                 <div id="mission-walker" class="walker-marker">🐾</div>
             </div>
-            <div class="mission-list" id="missionList">
-                <!-- Missions will be injected here -->
-            </div>
+            <p class="map-hint">섬 위의 <strong>?</strong> 를 눌러 그 섬의 미션을 확인하세요.</p>
             <div class="debug-panel" id="missionDebugPanel">
                 <label for="missionDebugSlider">진행도 조절 (테스트용): <span id="missionDebugValue">0</span> / 8</label>
                 <input type="range" id="missionDebugSlider" min="0" max="8" value="0" step="1">
@@ -208,6 +206,18 @@
                 <tbody id="users-body">
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- 섬 미션 목록 팝업 (지도의 ? 아이콘 클릭 시) -->
+    <div class="modal-overlay" id="islandModal">
+        <div class="modal-card island-modal-card">
+            <h3 id="islandModalTitle">섬</h3>
+            <p class="island-modal-sub" id="islandModalSub"></p>
+            <div class="mission-list" id="islandMissionList"></div>
+            <div class="modal-actions">
+                <button id="islandModalClose" class="btn-secondary">닫기</button>
+            </div>
         </div>
     </div>
 

@@ -4,28 +4,36 @@ let currentMatchId = null;
 let isAdmin = false;
 let currentUserProfile = null;
 
+// badge 좌표는 지도 PNG에 그려진 자물쇠/하트 원의 실제 중심 (이미지에서 측정)
+// quest 는 섬 위에 띄우는 물음표 마커 위치
 const missionIslandOverlays = {
-    D: { dim: { x: 10, y: 49, w: 16, h: 33 }, badge: { x: 9.1, y: 60.7 } },
-    A: { dim: { x: 32, y: 40, w: 23, h: 33 }, badge: { x: 33.3, y: 49.8 } },
-    S: { dim: { x: 53.5, y: 37, w: 17, h: 29 }, badge: { x: 53.5, y: 49.8 } },
-    O: { dim: { x: 70.6, y: 44, w: 16.5, h: 29 }, badge: { x: 70.8, y: 56.1 } },
-    M: { dim: { x: 89, y: 52, w: 19, h: 35 }, badge: { x: 88.9, y: 64.6 } },
+    D: { dim: { x: 10, y: 49, w: 16, h: 33 }, badge: { x: 9.1, y: 61.0 }, quest: { x: 10, y: 45 } },
+    A: { dim: { x: 32, y: 40, w: 23, h: 33 }, badge: { x: 32.9, y: 48.9 }, quest: { x: 33, y: 37 } },
+    S: { dim: { x: 53.5, y: 37, w: 17, h: 29 }, badge: { x: 53.4, y: 48.9 }, quest: { x: 53, y: 34 } },
+    O: { dim: { x: 70.6, y: 44, w: 16.5, h: 29 }, badge: { x: 70.4, y: 56.2 }, quest: { x: 70.5, y: 41 } },
+    M: { dim: { x: 89, y: 52, w: 19, h: 35 }, badge: { x: 88.3, y: 65.2 }, quest: { x: 89, y: 49 } },
 };
 
+const ISLAND_ORDER = ['D', 'A', 'S', 'O', 'M'];
+const ISLAND_LABEL = { D: '첫 만남', A: '추억 쌓기', S: '함께하는 시간', O: '마음 나누기', M: '사랑과 우정 완성' };
+
+// 캐릭터 위치. 섬의 ? 마커(위)와 상태 배지(아래) 사이에 놓아 겹치지 않게 한다.
 const missionWaypoints = [
-    { x: 48, y: 78 },
-    { x: 10, y: 45 },
-    { x: 31, y: 38 },
-    { x: 41, y: 38 },
-    { x: 53, y: 36 },
-    { x: 66, y: 40 },
-    { x: 75, y: 40 },
-    { x: 86, y: 48 },
-    { x: 93, y: 48 },
+    { x: 48, y: 76 }, // 0: START 섬
+    { x: 15, y: 53 }, // 1: D 완료
+    { x: 27, y: 45 }, // 2: A 미션1
+    { x: 39, y: 45 }, // 3: A 미션2
+    { x: 58, y: 43 }, // 4: S 완료
+    { x: 66, y: 50 }, // 5: O 미션1
+    { x: 76, y: 50 }, // 6: O 미션2
+    { x: 84, y: 58 }, // 7: M 미션1
+    { x: 93, y: 58 }, // 8: M 미션2 (완주)
 ];
 
 let missionOverlayElems = {};
 let missionBadgeElems = {};
+let missionQuestElems = {};
+let openIslandKey = null;
 let lastLoadedMissions = [];
 
 const MISSION_PROGRESS_COUNT = 8;
@@ -76,9 +84,13 @@ window.addEventListener("DOMContentLoaded", () => {
 function setupMissionUploadModal() {
     const cancelBtn = document.getElementById('missionModalCancel');
     const submitBtn = document.getElementById('missionModalSubmit');
-    if (!cancelBtn || !submitBtn) return;
-    cancelBtn.addEventListener('click', closeMissionSubmit);
-    submitBtn.addEventListener('click', submitMissionPhoto);
+    if (cancelBtn && submitBtn) {
+        cancelBtn.addEventListener('click', closeMissionSubmit);
+        submitBtn.addEventListener('click', submitMissionPhoto);
+    }
+
+    const islandClose = document.getElementById('islandModalClose');
+    if (islandClose) islandClose.addEventListener('click', closeIslandModal);
 }
 
 function setupMissionDebugSlider() {
@@ -95,7 +107,6 @@ function setupMissionDebugSlider() {
         document.getElementById('mission-completed-count').textContent = count;
         document.getElementById('mission-progress-bar-fill').style.width = `${(count / MISSION_PROGRESS_COUNT) * 100}%`;
         renderMissionIslandStates(preview);
-        renderMissionList(preview);
         updateMissionWalker(count);
     });
 }
@@ -434,12 +445,27 @@ function buildMissionOverlay() {
         badge.style.top = `${meta.badge.y}%`;
         overlays.appendChild(badge);
         missionBadgeElems[key] = badge;
+
+        // 섬 위 물음표 -> 그 섬의 미션 목록 팝업
+        const quest = document.createElement('div');
+        quest.className = 'island-quest';
+        quest.textContent = '?';
+        quest.style.left = `${meta.quest.x}%`;
+        quest.style.top = `${meta.quest.y}%`;
+        quest.addEventListener('click', () => openIslandModal(key));
+        overlays.appendChild(quest);
+        missionQuestElems[key] = quest;
     });
+}
+
+function setMapHint(text) {
+    const el = document.querySelector('#mission .map-hint');
+    if (el) el.textContent = text;
 }
 
 async function fetchMissions() {
     if (!currentMatchId) {
-        document.getElementById('missionList').innerHTML = `<p>배정된 미션이 없거나 매칭 정보가 없습니다.</p>`;
+        setMapHint('배정된 미션이 없거나 매칭 정보가 없습니다.');
         return;
     }
 
@@ -447,7 +473,7 @@ async function fetchMissions() {
         const response = await fetch(`${API_BASE_URL}/api/matches/${currentMatchId}/missions`);
         const missions = await response.json();
         if (!Array.isArray(missions) || missions.length === 0) {
-            document.getElementById('missionList').innerHTML = `<p>현재 진행중인 미션이 없습니다.</p>`;
+            setMapHint('현재 진행중인 미션이 없습니다.');
             return;
         }
 
@@ -463,12 +489,12 @@ async function fetchMissions() {
         if (slider) slider.value = completedCount;
         if (valueEl) valueEl.textContent = completedCount;
 
+        setMapHint('섬 위의 ? 를 눌러 그 섬의 미션을 확인하세요.');
         renderMissionIslandStates(missions);
-        renderMissionList(missions);
         updateMissionWalker(completedCount);
     } catch (e) {
         console.error(e);
-        document.getElementById('missionList').innerHTML = `<p>미션을 불러오는 중 오류가 발생했습니다.</p>`;
+        setMapHint('미션을 불러오는 중 오류가 발생했습니다.');
     }
 }
 
@@ -481,55 +507,117 @@ function updateMissionWalker(completedCount) {
     walker.style.top = `${point.y}%`;
 }
 
+function islandOf(mission) {
+    return mission.island || MISSION_INFO[mission.mission_id]?.island;
+}
+
+// 섬은 D -> A -> S -> O -> M 순서로 열린다.
+// 앞 섬을 전부 깨야 다음 섬이 열리고, 한 섬 안에서는 순서가 없다.
+function getIslandStates(missions) {
+    const states = {};
+    let previousCleared = true;
+
+    ISLAND_ORDER.forEach((key) => {
+        const islandMissions = missions.filter((m) => islandOf(m) === key);
+        const doneCount = islandMissions.filter((m) => m.is_completed).length;
+        const isDone = islandMissions.length > 0 && doneCount === islandMissions.length;
+
+        states[key] = {
+            state: !previousCleared ? 'locked' : isDone ? 'done' : 'open',
+            doneCount,
+            total: islandMissions.length,
+            missions: islandMissions,
+        };
+
+        previousCleared = previousCleared && isDone;
+    });
+
+    return states;
+}
+
 function renderMissionIslandStates(missions) {
-    // 1단계(미션 0)는 D섬에만 있으므로 전체 미션에서 판정해야 한다.
-    // 섬별로 계산하면 A/S/O/M은 항상 false가 되어 영원히 잠긴다.
-    const firstStageDone = missions.some((m) => m.mission_id === 0 && m.is_completed);
+    const states = getIslandStates(missions);
 
-    Object.keys(missionIslandOverlays).forEach((islandKey) => {
-        const islandMissions = missions.filter((m) => (m.island || MISSION_INFO[m.mission_id]?.island) === islandKey);
-        const isLocked = islandMissions.some((m) => !m.is_completed && m.mission_id !== 0 && !firstStageDone);
-        const isDone = islandMissions.length > 0 && islandMissions.every((m) => m.is_completed);
-
+    ISLAND_ORDER.forEach((islandKey) => {
+        const info = states[islandKey];
         const dim = missionOverlayElems[islandKey];
         const badge = missionBadgeElems[islandKey];
+        const quest = missionQuestElems[islandKey];
         if (!dim || !badge) return;
 
-        dim.classList.toggle('is-open', !isLocked && !isDone);
+        const isLocked = info.state === 'locked';
+        const isDone = info.state === 'done';
+
+        dim.classList.toggle('is-open', info.state === 'open');
         dim.classList.toggle('is-done', isDone);
 
         badge.classList.toggle('locked', isLocked);
         badge.classList.toggle('done', isDone);
         badge.textContent = isDone ? '🏁' : isLocked ? '🔒' : '❤️';
+
+        if (quest) {
+            quest.classList.toggle('locked', isLocked);
+            quest.classList.toggle('done', isDone);
+            quest.textContent = isDone ? '✓' : '?';
+        }
     });
+
+    // 팝업이 열려 있으면 내용도 같이 갱신
+    if (openIslandKey) renderIslandModal(states, openIslandKey);
 }
 
-function renderMissionList(missions) {
-    const listEl = document.getElementById('missionList');
+// ---------- 섬 미션 목록 팝업 ----------
+function openIslandModal(islandKey) {
+    const states = getIslandStates(lastLoadedMissions);
+    if (states[islandKey]?.state === 'locked') {
+        const prev = ISLAND_ORDER[ISLAND_ORDER.indexOf(islandKey) - 1];
+        alert(`${prev}섬의 미션을 먼저 모두 완료해야 열립니다.`);
+        return;
+    }
+    openIslandKey = islandKey;
+    renderIslandModal(states, islandKey);
+    document.getElementById('islandModal').classList.add('open');
+}
+
+function closeIslandModal() {
+    document.getElementById('islandModal').classList.remove('open');
+    openIslandKey = null;
+}
+
+function renderIslandModal(states, islandKey) {
+    const info = states[islandKey];
+    if (!info) return;
+
+    document.getElementById('islandModalTitle').textContent =
+        `${islandKey}섬 · ${ISLAND_LABEL[islandKey] || ''}`;
+    document.getElementById('islandModalSub').textContent =
+        `${info.doneCount} / ${info.total} 완료`;
+
+    const listEl = document.getElementById('islandMissionList');
     listEl.innerHTML = '';
 
-    missions.forEach((mission, index) => {
+    info.missions.forEach((mission) => {
+        const status = mission.is_completed ? 'done' : info.state === 'locked' ? 'locked' : 'open';
         const item = document.createElement('div');
-        item.className = `mission-item ${mission.is_completed ? 'done' : mission.mission_id !== 0 && !missions.some((m) => m.mission_id === 0 && m.is_completed) ? 'locked' : 'open'}`;
+        item.className = `mission-item ${status}`;
 
         const badge = document.createElement('div');
         badge.className = 'badge';
-        badge.textContent = mission.is_completed ? '✓' : mission.mission_id === 0 ? 'D' : `${index + 1}`;
+        badge.textContent = status === 'done' ? '✓' : status === 'locked' ? '🔒' : '📷';
 
         const title = document.createElement('div');
         title.className = 'title';
         title.textContent = mission.title;
 
-        const islandCode = mission.island || MISSION_INFO[mission.mission_id]?.island || '??';
-        const stageTag = document.createElement("div");
-        stageTag.className = "stage-tag";
-        stageTag.textContent = `${islandCode} 섬`;
+        const tag = document.createElement('div');
+        tag.className = 'stage-tag';
+        tag.textContent = status === 'done' ? '완료' : status === 'locked' ? '잠김' : '사진 인증';
 
         item.appendChild(badge);
         item.appendChild(title);
-        item.appendChild(stageTag);
+        item.appendChild(tag);
 
-        if (!mission.is_completed && (mission.mission_id === 0 || missions.some((m) => m.mission_id === 0 && m.is_completed))) {
+        if (status === 'open') {
             item.addEventListener('click', () => openMissionSubmit(mission));
         }
 
@@ -586,7 +674,9 @@ async function submitMissionPhoto() {
             return;
         }
 
+        // 지도 위 클리어 연출이 가려지지 않도록 팝업을 모두 닫는다
         closeMissionSubmit();
+        closeIslandModal();
         await playMissionClearEffect();
         fetchMissions();
     } catch (e) {

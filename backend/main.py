@@ -8,7 +8,7 @@ import models
 import schemas
 from database import engine, get_db
 from mission_data import MISSIONS
-from mission_service import get_match_progress
+from mission_service import get_match_progress, get_unlocked_islands
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -203,18 +203,14 @@ async def complete_mission(
     if not catalog:
         raise HTTPException(status_code=404, detail="존재하지 않는 미션입니다")
 
-    if mission_id != 0:
-        stage1 = (
-            db.query(models.Mission)
-            .filter(
-                models.Mission.match_id == match_id,
-                models.Mission.mission_id == 0,
-                models.Mission.is_completed == True,
-            )
-            .first()
-        )
-        if not stage1:
-            raise HTTPException(status_code=400, detail="1단계를 먼저 완료해야 합니다")
+    # 섬 순서(D->A->S->O->M) 검증: 앞 섬을 다 깨야 다음 섬 미션을 완료할 수 있다
+    completed_ids = {
+        r.mission_id
+        for r in db.query(models.Mission).filter(models.Mission.match_id == match_id).all()
+        if r.is_completed and r.mission_id is not None
+    }
+    if catalog["island"] not in get_unlocked_islands(completed_ids):
+        raise HTTPException(status_code=400, detail="앞 섬의 미션을 먼저 완료해야 합니다")
 
     db_mission = (
         db.query(models.Mission)
