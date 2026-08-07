@@ -810,10 +810,10 @@ async function submitMissionPhoto() {
             return;
         }
 
-        // 지도 위 클리어 연출이 가려지지 않도록 팝업을 모두 닫는다
+        // 승인 대기 상태로 변경되므로 클리어 연출 대신 알림을 띄운다
         closeMissionSubmit();
         closeIslandModal();
-        await playMissionClearEffect();
+        alert('미션 승인 요청이 전송되었습니다. 관리자의 승인을 기다려주세요.');
         fetchMissions();
     } catch (e) {
         msgEl.textContent = '서버 연결에 실패했습니다.';

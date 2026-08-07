@@ -9,8 +9,23 @@ import schemas
 from database import engine, get_db
 from mission_data import MISSIONS
 from mission_service import get_match_progress, get_unlocked_islands
+import json
+from pydantic import BaseModel
+from typing import Optional
 
 models.Base.metadata.create_all(bind=engine)
+
+SETTINGS_FILE = "settings.json"
+
+def get_settings():
+    if os.path.exists(SETTINGS_FILE):
+        with open(SETTINGS_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_settings(data):
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(data, f)
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -214,6 +229,12 @@ async def complete_mission(
     photo: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
+    settings = get_settings()
+    if settings.get("deadline"):
+        deadline = datetime.fromisoformat(settings["deadline"].replace("Z", "+00:00")).replace(tzinfo=None)
+        if datetime.utcnow() > deadline:
+            raise HTTPException(status_code=400, detail="마감 기한이 지나 미션을 제출할 수 없습니다.")
+
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="로그인이 필요합니다")
@@ -229,7 +250,6 @@ async def complete_mission(
     if not catalog:
         raise HTTPException(status_code=404, detail="존재하지 않는 미션입니다")
 
-    # 섬 순서(D->A->S->O->M) 검증: 앞 섬을 다 깨야 다음 섬 미션을 완료할 수 있다
     completed_ids = {
         r.mission_id
         for r in db.query(models.Mission).filter(models.Mission.match_id == match_id).all()
@@ -256,15 +276,13 @@ async def complete_mission(
         db.add(db_mission)
 
     db_mission.title = catalog["title"]
-    db_mission.is_completed = True
+    db_mission.is_completed = False
     db_mission.proof_url = filename
     db_mission.completed_at = datetime.utcnow()
 
-    match.score += db_mission.points
-
     db.commit()
 
-    return {"message": "완료 처리되었습니다", "progress": get_match_progress(db, match_id)}
+    return {"message": "미션 승인이 요청되었습니다 (대기중)", "progress": get_match_progress(db, match_id)}
 
 
 # 데모/테스트 전용: 진행도를 강제로 count개 완료 상태로 맞춘다.
@@ -297,6 +315,64 @@ def debug_set_progress(match_id: int, count: int, db: Session = Depends(get_db))
     db.commit()
 
     return get_match_progress(db, match_id)
+
+class AdminSettingsPatch(BaseModel):
+    deadline: Optional[str] = None
+
+@app.get("/api/admin/settings")
+def get_admin_settings():
+    return get_settings()
+
+@app.post("/api/admin/settings")
+def update_admin_settings(patch: AdminSettingsPatch):
+    data = get_settings()
+    data["deadline"] = patch.deadline
+    save_settings(data)
+    return {"message": "설정이 저장되었습니다."}
+
+@app.get("/api/admin/missions/pending")
+def get_admin_pending_missions(db: Session = Depends(get_db)):
+    missions = db.query(models.Mission).filter(
+        models.Mission.is_completed == False,
+        models.Mission.proof_url != None
+    ).all()
+    
+    result = []
+    for m in missions:
+        match = db.query(models.Match).filter(models.Match.id == m.match_id).first()
+        result.append({
+            "mission_db_id": m.id,
+            "match_id": m.match_id,
+            "team_name": f"{match.mentor.name} & {match.mentee.name}" if match and match.mentor and match.mentee else "알 수 없음",
+            "title": m.title,
+            "proof_url": m.proof_url,
+            "submitted_at": m.completed_at.isoformat() if m.completed_at else ""
+        })
+    return result
+
+@app.post("/api/admin/missions/{mission_id}/approve")
+def approve_admin_mission(mission_id: int, db: Session = Depends(get_db)):
+    db_mission = db.query(models.Mission).filter(models.Mission.id == mission_id).first()
+    if not db_mission:
+        raise HTTPException(status_code=404, detail="미션을 찾을 수 없습니다.")
+        
+    db_mission.is_completed = True
+    match = db.query(models.Match).filter(models.Match.id == db_mission.match_id).first()
+    if match:
+        match.score += db_mission.points
+        
+    db.commit()
+    return {"message": "미션이 승인되었습니다."}
+
+@app.post("/api/admin/missions/{mission_id}/reject")
+def reject_admin_mission(mission_id: int, db: Session = Depends(get_db)):
+    db_mission = db.query(models.Mission).filter(models.Mission.id == mission_id).first()
+    if not db_mission:
+        raise HTTPException(status_code=404, detail="미션을 찾을 수 없습니다.")
+        
+    db_mission.proof_url = None
+    db.commit()
+    return {"message": "미션이 반려되었습니다."}
 
 
 @app.get("/api/mission-photos/{filename}")
