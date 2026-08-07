@@ -94,12 +94,14 @@ function init() {
 
     // 드래그 중(input)에는 화면만 미리 바꾸고, 손을 뗐을 때(change) 서버에 반영한다.
     // 드래그 한 번에 요청이 수십 번 나가는 걸 막기 위함.
-    debugSlider.addEventListener("input", (e) => {
-        setLocalCompletedCount(parseInt(e.target.value, 10));
-    });
-    debugSlider.addEventListener("change", (e) => {
-        if (serverConnected) pushProgressToServer(parseInt(e.target.value, 10));
-    });
+    if (debugSlider) {
+        debugSlider.addEventListener("input", (e) => {
+            setLocalCompletedCount(parseInt(e.target.value, 10));
+        });
+        debugSlider.addEventListener("change", (e) => {
+            if (serverConnected) pushProgressToServer(parseInt(e.target.value, 10));
+        });
+    }
 
     backBtn.addEventListener("click", () => {
         location.href = "index.html";
@@ -118,7 +120,7 @@ function init() {
         playClearEffect({ id: -1, island: "D", stage: 0, title: "미리보기" });
     });
 
-    setLocalCompletedCount(parseInt(debugSlider.value, 10));
+    if (debugSlider) setLocalCompletedCount(parseInt(debugSlider.value, 10));
 
     // mission.html?user_id=1&match_id=1 로 들어오면 자동으로 내 팀 진행상황을 불러온다.
     // (로그인 화면에서 이 주소로 넘겨주면 수동 입력이 필요 없음)
@@ -161,12 +163,12 @@ function setLocalCompletedCount(n) {
 }
 
 function computeLocalView() {
-    const stage1Done = localCompletedIds.has(0);
+    const nextMissionId = MISSIONS.find((mission) => !localCompletedIds.has(mission.id))?.id;
     const missions = MISSIONS.map((m) => {
         let status;
         if (localCompletedIds.has(m.id)) status = "done";
-        else if (m.id !== 0 && !stage1Done) status = "locked";
-        else status = "open";
+        else if (m.id === nextMissionId) status = "open";
+        else status = "locked";
         return { ...m, status };
     });
     return { completed_count: localCompletedIds.size, missions };
@@ -190,7 +192,7 @@ async function loadRealMatch() {
         serverConnected = true;
         debugMode.textContent = "(서버에 실제 반영됨)";
         demoAuthMsg.textContent = "불러왔습니다.";
-        debugSlider.value = serverView.completed_count;
+        if (debugSlider) debugSlider.value = serverView.completed_count;
         render(serverView);
     } catch (e) {
         demoAuthMsg.textContent = "진행상황을 불러오지 못했습니다. match_id를 확인해주세요.";
@@ -335,8 +337,8 @@ function playClearEffect(mission) {
 function render(view) {
     const completedCount = view.completed_count;
     completedCountEl.textContent = completedCount;
-    debugValue.textContent = completedCount;
-    debugSlider.value = completedCount; // 미션 완료로 값이 바뀌어도 슬라이더가 따라오게
+    if (debugValue) debugValue.textContent = completedCount;
+    if (debugSlider) debugSlider.value = completedCount;
     progressBarFill.style.width = (completedCount / MISSIONS.length) * 100 + "%";
 
     const wp = WAYPOINTS[Math.min(completedCount, WAYPOINTS.length - 1)];

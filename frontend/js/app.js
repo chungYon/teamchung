@@ -73,7 +73,6 @@ window.addEventListener("DOMContentLoaded", () => {
         }
         container.innerHTML = html;
     }
-    setupMissionDebugSlider();
     setupMissionUploadModal();
 });
 
@@ -87,32 +86,6 @@ function setupMissionUploadModal() {
 
     const islandClose = document.getElementById('islandModalClose');
     if (islandClose) islandClose.addEventListener('click', closeIslandModal);
-}
-
-function setupMissionDebugSlider() {
-    const slider = document.getElementById('missionDebugSlider');
-    const valueEl = document.getElementById('missionDebugValue');
-    if (!slider || !valueEl) return;
-
-    slider.addEventListener('input', () => {
-        const count = parseInt(slider.value, 10);
-        valueEl.textContent = count;
-        if (lastLoadedMissions.length === 0) return;
-
-        const preview = getMissionPreview(lastLoadedMissions, count);
-        document.getElementById('mission-completed-count').textContent = count;
-        document.getElementById('mission-progress-bar-fill').style.width = `${(count / MISSION_PROGRESS_COUNT) * 100}%`;
-        renderMissionIslandStates(preview);
-        updateMissionWalker(preview);
-    });
-}
-
-function getMissionPreview(missions, count) {
-    const ordered = [...missions].sort((a, b) => (a.mission_id ?? 0) - (b.mission_id ?? 0));
-    return ordered.map((mission, index) => ({
-        ...mission,
-        is_completed: index < count
-    }));
 }
 
 async function fetchUsers() {
@@ -633,11 +606,6 @@ async function fetchMissions() {
         document.getElementById('mission-completed-count').textContent = completedCount;
         document.getElementById('mission-progress-bar-fill').style.width = `${(completedCount / MISSION_PROGRESS_COUNT) * 100}%`;
 
-        const slider = document.getElementById('missionDebugSlider');
-        const valueEl = document.getElementById('missionDebugValue');
-        if (slider) slider.value = completedCount;
-        if (valueEl) valueEl.textContent = completedCount;
-
         setMapHint('섬 위의 ? 를 눌러 그 섬의 미션을 확인하세요.');
         renderMissionIslandStates(missions);
         updateMissionWalker(missions);
@@ -693,14 +661,11 @@ function getIslandStates(missions) {
     return states;
 }
 
-// 아직 안 깬 미션 목록. 지금 열린 섬에서 이 중 아무거나 고를 수 있다.
+// 아직 안 깬 미션 중 다음 순서의 한 개만 선택할 수 있다.
 function getSelectableMissions(missions) {
-    const done = missions.filter((m) => m.is_completed);
-    // 첫 만남(0번)을 아직 안 깼으면 그것만 고를 수 있다
-    if (!done.some((m) => m.mission_id === 0)) {
-        return missions.filter((m) => m.mission_id === 0);
-    }
-    return missions.filter((m) => !m.is_completed);
+    const ordered = [...missions].sort((a, b) => (a.mission_id ?? 0) - (b.mission_id ?? 0));
+    const nextMission = ordered.find((mission) => !mission.is_completed);
+    return nextMission ? [nextMission] : [];
 }
 
 function renderMissionIslandStates(missions) {
@@ -883,6 +848,7 @@ async function submitMissionPhoto() {
 // 지우는 건 playMissionClearEffect가 알아서 한다.
 const CLEAR_EFFECT = 'senior';   // 'senior' | 'stamp' | 'confetti' | 'neon'
 const CLEAR_EFFECT_MS = 1800;    // 연출 길이. CSS 애니메이션 길이와 맞출 것
+let seniorEffectIndex = 0;
 
 const EFFECTS = {
     // 성학 선배가 지도를 덮친다 (사진 원본 그대로)
@@ -891,7 +857,9 @@ const EFFECTS = {
         layer.className = 'effect-senior';
 
         const img = document.createElement('img');
-        img.src = 'img/멋쟁이성학선배.png';
+        const seniorImages = ['img/멋쟁이성학선배.png', 'img/멋쟁이성원선배.png'];
+        img.src = seniorImages[seniorEffectIndex % seniorImages.length];
+        seniorEffectIndex += 1;
         img.alt = '';
 
         const text = document.createElement('div');
@@ -983,8 +951,12 @@ async function fetchLeaderboard() {
 
         data.forEach(item => {
             const tr = document.createElement('tr');
+            const medal = { 1: '🥇', 2: '🥈', 3: '🥉' }[item.rank] || '';
+            const rankLabel = medal
+                ? `<span class="leaderboard-medal" aria-label="${item.rank}위">${medal}</span> <strong>${item.rank}위</strong>`
+                : `<strong>${item.rank}</strong>`;
             tr.innerHTML = `
-                <td><strong>${item.rank}</strong></td>
+                <td>${rankLabel}</td>
                 <td style="color:#a855f7; font-weight:bold;">${item.team_name}</td>
                 <td>${item.completed_missions} 회</td>
                 <td style="color:#10b981; font-weight:600;">${item.score} 점</td>
