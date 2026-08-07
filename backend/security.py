@@ -3,6 +3,7 @@ from pathlib import Path
 
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy.types import String, TypeDecorator
+from typing import Optional
 
 
 KEY_PATH = Path(__file__).with_name(".encryption.key")
@@ -23,13 +24,13 @@ def load_key() -> bytes:
 fernet = Fernet(load_key())
 
 
-def encrypt_value(value: str | None) -> str | None:
+def encrypt_value(value: Optional[str]) -> Optional[str]:
     if value is None or value == "":
         return value
     return fernet.encrypt(value.encode("utf-8")).decode("utf-8")
 
 
-def decrypt_value(value: str | None) -> str | None:
+def decrypt_value(value: Optional[str]) -> Optional[str]:
     if value is None or value == "":
         return value
     try:
