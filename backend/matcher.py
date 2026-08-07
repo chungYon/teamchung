@@ -72,17 +72,47 @@ def get_mbti_category(mbti1: str, mbti2: str) -> str:
 
 
 def get_mbti_score(mbti1: str, mbti2: str) -> int:
-    # Convert the compatibility category into a numeric score for ranking.
+       # Convert the compatibility category into a numeric score for ranking.
     category = get_mbti_category(mbti1, mbti2)
     return COMPATIBILITY_SCORES.get(category, 20)
 
 # Calculate hobby compatibility by parsing comma-separated hobby lists.
 # Hobby strings are normalized to lowercase and split by comma.
 # Shared hobbies are counted once, and each common hobby earns 15 points.
+
+HOBBIES_HIERARCHY = {
+    "운동": ["러닝", "헬스", "테니스", "클라이밍", "자전거"],
+    "음식": ["요리", "맛집탐방"],
+    "게임": ["롤", "오버워치", "배그"],
+    "여행": ["국내여행", "해외여행", "캠핑"],
+    "미디어/SNS": ["인스타", "유튜브", "넷플릭스"],
+    "문화/예술": ["영화관람", "음악감상", "독서"],
+    "IT/자기계발": ["알고리즘 코딩", "시스템 구축", "외국어 회화"]
+}
+ITEM_TO_CATEGORY = {}
+for cat, items in HOBBIES_HIERARCHY.items():
+    for item in items:
+        ITEM_TO_CATEGORY[item] = cat
+
 def get_hobbies_score(hobbies1: str, hobbies2: str) -> int:
-    h1 = set([h.strip().lower() for h in (hobbies1 or "").split(",") if h.strip()])
-    h2 = set([h.strip().lower() for h in (hobbies2 or "").split(",") if h.strip()])
-    return len(h1.intersection(h2)) * 15
+    h1 = set([h.strip() for h in (hobbies1 or "").split(",") if h.strip()])
+    h2 = set([h.strip() for h in (hobbies2 or "").split(",") if h.strip()])
+    score = 0
+    # 완전 일치하는 취미는 15점 부여
+    common = h1.intersection(h2)
+    score += len(common) * 15
+    
+    # 일치하지 않는 취미 중에서, 같은 카테고리에 속하면 5점 부여
+    h1_unmatched = h1 - common
+    h2_unmatched = h2 - common
+    
+    h1_cats = set([ITEM_TO_CATEGORY[h] for h in h1_unmatched if h in ITEM_TO_CATEGORY])
+    h2_cats = set([ITEM_TO_CATEGORY[h] for h in h2_unmatched if h in ITEM_TO_CATEGORY])
+    
+    common_cats = h1_cats.intersection(h2_cats)
+    score += len(common_cats) * 5
+    
+    return score
 
 # Main matching routine.
 # 1. Finds all currently unmatched mentor and mentee users.
