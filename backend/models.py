@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from database import Base
+from security import EncryptedString
 
 class User(Base):
     __tablename__ = "users"
@@ -15,7 +16,7 @@ class User(Base):
     hobbies = Column(String) # Comma separated keywords
     living_type = Column(String) # 자취/통학/기숙사
     is_mentor = Column(Boolean, default=False) # true if 재학생, false if 신입생
-    phone = Column(String)
+    phone = Column(EncryptedString)
     match_status = Column(String, default="unmatched") # unmatched, matched
 
     mentor_matches = relationship("Match", foreign_keys="[Match.mentor_id]", back_populates="mentor")

@@ -63,6 +63,11 @@ def get_match_progress(db, match_id):
     rows = db.query(models.Mission).filter(models.Mission.match_id == match_id).all()
     # 예전 '미션 할당' 기능으로 만든 행은 mission_id가 없다. 진행도 계산에서 제외.
     completed_ids = {r.mission_id for r in rows if r.is_completed and r.mission_id is not None}
+    # 사진은 올렸지만 관리자 승인을 아직 못 받은 미션
+    pending_ids = {
+        r.mission_id for r in rows
+        if not r.is_completed and r.mission_id is not None and r.proof_url
+    }
     completed_count = len(completed_ids)
     finished = completed_count >= REQUIRED_COUNT
 
@@ -70,6 +75,8 @@ def get_match_progress(db, match_id):
     for m in MISSIONS:
         if m["id"] in completed_ids:
             status = "done"
+        elif m["id"] in pending_ids:
+            status = "pending"
         elif finished:
             # 8개를 채웠으면 남은 미션은 더 못 한다
             status = "locked"
