@@ -17,12 +17,11 @@
     <nav id="navbar" class="glass-nav">
         <div class="logo">Mentor Connect</div>
         <div class="nav-links">
-            <button onclick="switchScreen('login')" class="active" id="btn-login">1. 로그인</button>
-            <button onclick="switchScreen('profile')" id="btn-profile">2. 가입/프로필</button>
-            <button onclick="switchScreen('matching')" id="btn-matching" style="display:none;">3. 매칭 현황</button>
-            <button onclick="switchScreen('mission')" id="btn-mission" style="display:none;">4. 미션 보드</button>
-            <button onclick="switchScreen('score')" id="btn-score">5. 리더보드</button>
-            <button onclick="switchScreen('users')" id="btn-users" style="display:none;">6. 회원 목록</button>
+            <button onclick="switchScreen('login')" class="active" id="btn-login">로그인</button>
+            <button onclick="switchScreen('matching')" id="btn-matching" style="display:none;">매칭 현황</button>
+            <button onclick="switchScreen('mission')" id="btn-mission" style="display:none;">미션 보드</button>
+            <button onclick="switchScreen('score')" id="btn-score">리더보드</button>
+            <button onclick="switchScreen('users')" id="btn-users" style="display:none;">회원 목록</button>
         </div>
     </nav>
 
@@ -39,10 +38,11 @@
                 <input type="password" id="login-password" placeholder="비밀번호 입력">
             </div>
             <button class="btn-submit" onclick="login()">로그인 실행</button>
-            <p id="login-msg" class="msg"></p>
+            <p style="text-align:center; margin-top:20px; font-size:0.95rem; color:#cbd5e1;">계정이 없으신가요? <a href="#" style="color:#a855f7; text-decoration:none; font-weight:600;" onclick="switchScreen('profile'); return false;">회원가입 하기</a></p>
+            <p id="login-msg" class="msg" style="text-align:center;"></p>
         </div>
 
-        <!-- 2. 프로필 입력 창 -->
+        <!-- 2. 프로필 입력 창 (네비게이션 탭에서 제외됨) -->
         <div id="profile" class="screen fade-in">
             <h2>프로필 입력 (회원가입)</h2>
             <div class="form-grid">
