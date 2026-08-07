@@ -228,6 +228,34 @@ async def complete_mission(
     return {"message": "완료 처리되었습니다", "progress": get_match_progress(db, match_id)}
 
 
+# 데모/테스트 전용: 진행도를 강제로 count개 완료 상태로 맞춘다.
+# 시연 리허설을 반복하거나, 무대에서 처음부터 다시 보여줄 때 리셋용.
+# 권한 검사를 하지 않으므로 실서비스에서는 반드시 제거할 것.
+@app.post("/api/matches/{match_id}/debug/set-progress")
+def debug_set_progress(match_id: int, count: int, db: Session = Depends(get_db)):
+    match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="매칭을 찾을 수 없습니다")
+
+    count = max(0, min(count, len(MISSIONS)))
+
+    db.query(models.Mission).filter(models.Mission.match_id == match_id).delete()
+    for m in MISSIONS[:count]:
+        db.add(models.Mission(
+            match_id=match_id,
+            mission_id=m["id"],
+            title=m["title"],
+            is_completed=True,
+            points=100,
+            completed_at=datetime.utcnow(),
+        ))
+
+    match.score = count * 100
+    db.commit()
+
+    return get_match_progress(db, match_id)
+
+
 @app.get("/api/mission-photos/{filename}")
 def get_mission_photo(filename: str, user_id: int, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == user_id).first()

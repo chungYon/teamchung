@@ -25,7 +25,7 @@
             <button onclick="switchScreen('login')" class="active" id="btn-login">1. 로그인</button>
             <button onclick="switchScreen('profile')" id="btn-profile">2. 가입/프로필</button>
             <button onclick="switchScreen('matching')" id="btn-matching" style="display:none;">3. 매칭 현황</button>
-            <button onclick="switchScreen('mission')" id="btn-mission" style="display:none;">4. 미션 보드</button>
+            <button onclick="goToMissionMap()" id="btn-mission" style="display:none;">4. 미션 보드</button>
             <button onclick="switchScreen('score')" id="btn-score">5. 리더보드</button>
             <button onclick="switchScreen('users')" id="btn-users" style="display:none;">6. 회원 목록</button>
         </div>
@@ -180,5 +180,81 @@
     </div>
 
     <script src="js/app.js"></script>
+    <script>
+    // 미션 보드 = DASOM 지도 화면(mission.html)으로 이동.
+    // 로그인/매칭 정보를 URL로 넘겨서 지도가 바로 내 팀 진행상황을 불러오게 한다.
+    function goToMissionMap() {
+        if (!currentMatchId) {
+            alert("먼저 '3. 매칭 현황'에서 내 매칭을 확인해주세요.");
+            switchScreen('matching');
+            return;
+        }
+        saveSession();
+        location.href = `mission.html?user_id=${currentUserId}&match_id=${currentMatchId}`;
+    }
+
+    // 지도 화면에 다녀와도 로그인이 풀리지 않도록 세션을 저장/복원한다.
+    // (페이지를 이동하면 app.js의 currentUserId가 초기화되기 때문)
+    const SESSION_KEY = 'dasom_session';
+
+    function saveSession() {
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+            userId: currentUserId,
+            matchId: currentMatchId
+        }));
+    }
+
+    function clearSession() {
+        localStorage.removeItem(SESSION_KEY);
+    }
+
+    async function restoreSession() {
+        const raw = localStorage.getItem(SESSION_KEY);
+        if (!raw) return;
+
+        let saved;
+        try {
+            saved = JSON.parse(raw);
+        } catch (e) {
+            clearSession();
+            return;
+        }
+        if (!saved.userId) return;
+
+        // 저장된 유저가 실제로 있는지 확인 (DB를 지웠는데 세션만 남은 경우 방지)
+        let user;
+        try {
+            const res = await fetch(`${API_BASE_URL}/users/${saved.userId}`);
+            if (!res.ok) throw new Error();
+            user = await res.json();
+        } catch (e) {
+            clearSession();
+            return;
+        }
+
+        currentUserId = saved.userId;
+        currentMatchId = saved.matchId;
+
+        document.getElementById('btn-matching').style.display = 'inline-block';
+        document.getElementById('btn-mission').style.display = 'inline-block';
+        if (user.is_mentor) {
+            document.getElementById('assign-mission-admin').style.display = 'block';
+            document.getElementById('btn-users').style.display = 'inline-block';
+        }
+
+        switchScreen('matching');
+    }
+
+    // app.js를 직접 고치지 않고, 로그인 성공 시점에도 세션이 저장되도록 감싼다.
+    // (다른 계정으로 다시 로그인했을 때 예전 세션이 남아있는 것을 막기 위함)
+    const _originalLogin = window.login;
+    window.login = async function () {
+        clearSession();
+        await _originalLogin.apply(this, arguments);
+        if (currentUserId) saveSession();
+    };
+
+    window.addEventListener('load', restoreSession);
+    </script>
 </body>
 </html>

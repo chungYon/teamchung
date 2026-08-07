@@ -28,6 +28,10 @@
     <span id="demoAuthMsg"></span>
   </div>
 
+  <div class="top-bar">
+    <button id="backBtn" class="back-btn">← 메인으로</button>
+  </div>
+
   <div class="progress-header">
     <div class="progress-text"><span id="completedCount">0</span> / 8</div>
     <div class="progress-bar"><div class="progress-bar-fill" id="progressBarFill"></div></div>
@@ -43,7 +47,7 @@
   <div class="mission-list" id="missionList"></div>
 
   <div class="debug-panel" id="debugPanel">
-    <label for="debugSlider">완료 개수 (테스트용, match_id 불러오면 숨김): <span id="debugValue">0</span> / 8</label>
+    <label for="debugSlider">진행도 조절 (테스트용): <span id="debugValue">0</span> / 8 <span id="debugMode"></span></label>
     <input type="range" id="debugSlider" min="0" max="8" value="0" step="1">
   </div>
 

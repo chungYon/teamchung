@@ -68,6 +68,8 @@ const completedCountEl = document.getElementById("completedCount");
 const debugPanel = document.getElementById("debugPanel");
 const debugSlider = document.getElementById("debugSlider");
 const debugValue = document.getElementById("debugValue");
+const debugMode = document.getElementById("debugMode");
+const backBtn = document.getElementById("backBtn");
 
 const effectSelect = document.getElementById("effectSelect");
 const effectPreviewBtn = document.getElementById("effectPreviewBtn");
@@ -90,9 +92,19 @@ const islandBadgeEls = {};
 function init() {
     buildIslandOverlays();
 
+    // 드래그 중(input)에는 화면만 미리 바꾸고, 손을 뗐을 때(change) 서버에 반영한다.
+    // 드래그 한 번에 요청이 수십 번 나가는 걸 막기 위함.
     debugSlider.addEventListener("input", (e) => {
         setLocalCompletedCount(parseInt(e.target.value, 10));
     });
+    debugSlider.addEventListener("change", (e) => {
+        if (serverConnected) pushProgressToServer(parseInt(e.target.value, 10));
+    });
+
+    backBtn.addEventListener("click", () => {
+        location.href = "index.html";
+    });
+
     demoLoadBtn.addEventListener("click", loadRealMatch);
     modalCancelBtn.addEventListener("click", closeUploadModal);
     modalSubmitBtn.addEventListener("click", submitCompletion);
@@ -107,6 +119,17 @@ function init() {
     });
 
     setLocalCompletedCount(parseInt(debugSlider.value, 10));
+
+    // mission.html?user_id=1&match_id=1 로 들어오면 자동으로 내 팀 진행상황을 불러온다.
+    // (로그인 화면에서 이 주소로 넘겨주면 수동 입력이 필요 없음)
+    const params = new URLSearchParams(location.search);
+    const uid = params.get("user_id");
+    const mid = params.get("match_id");
+    if (uid && mid) {
+        demoUserIdInput.value = uid;
+        demoMatchIdInput.value = mid;
+        loadRealMatch();
+    }
 }
 
 function buildIslandOverlays() {
@@ -165,11 +188,28 @@ async function loadRealMatch() {
         currentUserId = uid;
         currentMatchId = mid;
         serverConnected = true;
-        debugPanel.style.display = "none";
+        debugMode.textContent = "(서버에 실제 반영됨)";
         demoAuthMsg.textContent = "불러왔습니다.";
+        debugSlider.value = serverView.completed_count;
         render(serverView);
     } catch (e) {
         demoAuthMsg.textContent = "진행상황을 불러오지 못했습니다. match_id를 확인해주세요.";
+    }
+}
+
+// 슬라이더로 맞춘 진행도를 서버에 실제로 반영한다 (테스트/시연 리셋용)
+async function pushProgressToServer(count) {
+    try {
+        const res = await fetch(
+            `${API_BASE}/api/matches/${currentMatchId}/debug/set-progress?count=${count}`,
+            { method: "POST" }
+        );
+        if (!res.ok) throw new Error();
+        serverView = await res.json();
+        render(serverView);
+        demoAuthMsg.textContent = `진행도를 ${count}개로 맞췄습니다.`;
+    } catch (e) {
+        demoAuthMsg.textContent = "진행도 변경 실패 (서버 확인 필요)";
     }
 }
 
@@ -296,6 +336,7 @@ function render(view) {
     const completedCount = view.completed_count;
     completedCountEl.textContent = completedCount;
     debugValue.textContent = completedCount;
+    debugSlider.value = completedCount; // 미션 완료로 값이 바뀌어도 슬라이더가 따라오게
     progressBarFill.style.width = (completedCount / MISSIONS.length) * 100 + "%";
 
     const wp = WAYPOINTS[Math.min(completedCount, WAYPOINTS.length - 1)];
