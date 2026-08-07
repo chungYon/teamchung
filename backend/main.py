@@ -8,7 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import models
 import schemas
 from database import engine, get_db
-from mission_data import get_missions, save_missions, get_required_count, next_mission_id
+from mission_data import (
+    get_missions, save_missions, get_required_count, next_mission_id, MAX_MISSIONS
+)
 from mission_service import get_match_progress, can_complete
 from security import decrypt_value, encrypt_value
 import json
@@ -358,7 +360,11 @@ def _sync_all_matches(db):
 
 @app.get("/api/admin/missions/catalog")
 def get_mission_catalog():
-    return {"missions": get_missions(), "required_count": get_required_count()}
+    return {
+        "missions": get_missions(),
+        "required_count": get_required_count(),
+        "max_missions": MAX_MISSIONS,
+    }
 
 
 @app.post("/api/admin/missions/catalog")
@@ -368,6 +374,11 @@ def add_mission_catalog(item: MissionCatalogItem, db: Session = Depends(get_db))
         raise HTTPException(status_code=400, detail="미션 제목을 입력해주세요")
 
     missions = get_missions()
+    if len(missions) >= MAX_MISSIONS:
+        raise HTTPException(
+            status_code=400, detail=f"미션은 최대 {MAX_MISSIONS}개까지 만들 수 있습니다"
+        )
+
     new_id = next_mission_id()
     missions.append({
         "id": new_id,

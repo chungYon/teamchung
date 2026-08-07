@@ -31,6 +31,9 @@ ISLAND_SLOTS = [
 
 TARGET_COUNT = sum(s["slots"] for s in ISLAND_SLOTS)
 
+# 미션 목록에 담을 수 있는 최대 개수
+MAX_MISSIONS = 15
+
 
 def _normalize(m, index):
     """빠진 필드를 채워 넣는다. 예전 형식 파일도 읽히게."""

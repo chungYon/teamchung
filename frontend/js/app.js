@@ -1051,28 +1051,78 @@ async function fetchMissionCatalog() {
         const res = await fetch(`${API_BASE_URL}/api/admin/missions/catalog`);
         const data = await res.json();
         const missions = data.missions || [];
+        const max = data.max_missions || 15;
+        const atMax = missions.length >= max;
 
+        document.getElementById('catalog-count').textContent = `${missions.length} / ${max}`;
         document.getElementById('catalog-note').textContent =
-            `총 ${missions.length}개 중 ${data.required_count}개를 완료하면 완주입니다. `
-            + `맨 위 미션이 '첫 만남'이 되어 가장 먼저 열립니다.`;
+            `${data.required_count}개를 완료하면 완주입니다. 맨 위 미션이 '첫 만남'이 되어 가장 먼저 열리고, `
+            + `나머지는 순서 없이 골라서 진행합니다.`;
+
+        // 최대치에 닿으면 추가를 막는다
+        const addBtn = document.getElementById('catalog-add-btn');
+        const newTitle = document.getElementById('catalog-new-title');
+        addBtn.disabled = atMax;
+        newTitle.disabled = atMax;
+        newTitle.placeholder = atMax
+            ? `미션은 최대 ${max}개까지 만들 수 있습니다`
+            : '미션 제목을 입력하세요';
 
         listEl.innerHTML = '';
         missions.forEach((m, idx) => {
             const row = document.createElement('div');
-            row.className = 'catalog-row';
-            row.innerHTML = `
-                <span class="catalog-order">${idx + 1}</span>
-                <input type="text" class="catalog-title" value="${m.title.replace(/"/g, '&quot;')}">
-                <input type="number" class="catalog-points" value="${m.points}" min="0" step="10">
-                <span class="catalog-unit">점</span>
-                <button class="btn-secondary catalog-save">저장</button>
-                <button class="btn-secondary catalog-del">삭제</button>
-            `;
-            row.querySelector('.catalog-save').addEventListener('click', () =>
-                updateCatalogMission(m.id, row.querySelector('.catalog-title').value,
-                    row.querySelector('.catalog-points').value));
-            row.querySelector('.catalog-del').addEventListener('click', () =>
-                deleteCatalogMission(m.id, m.title));
+            row.className = 'catalog-row' + (idx === 0 ? ' is-first' : '');
+
+            const order = document.createElement('span');
+            order.className = 'catalog-order';
+            order.textContent = idx + 1;
+
+            const titleWrap = document.createElement('div');
+            titleWrap.className = 'catalog-col-title';
+            const title = document.createElement('input');
+            title.type = 'text';
+            title.className = 'catalog-title';
+            title.value = m.title;
+            titleWrap.appendChild(title);
+            if (idx === 0) {
+                const tag = document.createElement('span');
+                tag.className = 'catalog-first-tag';
+                tag.textContent = '첫 만남';
+                titleWrap.appendChild(tag);
+            }
+
+            const pointsWrap = document.createElement('div');
+            pointsWrap.className = 'catalog-points-wrap catalog-col-points';
+            const points = document.createElement('input');
+            points.type = 'number';
+            points.className = 'catalog-points';
+            points.value = m.points;
+            points.min = 0;
+            points.step = 10;
+            const unit = document.createElement('span');
+            unit.className = 'catalog-unit';
+            unit.textContent = '점';
+            pointsWrap.appendChild(points);
+            pointsWrap.appendChild(unit);
+
+            const actions = document.createElement('div');
+            actions.className = 'catalog-col-action';
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'catalog-save';
+            saveBtn.textContent = '저장';
+            saveBtn.addEventListener('click', () =>
+                updateCatalogMission(m.id, title.value, points.value));
+            const delBtn = document.createElement('button');
+            delBtn.className = 'catalog-del';
+            delBtn.textContent = '삭제';
+            delBtn.addEventListener('click', () => deleteCatalogMission(m.id, m.title));
+            actions.appendChild(saveBtn);
+            actions.appendChild(delBtn);
+
+            row.appendChild(order);
+            row.appendChild(titleWrap);
+            row.appendChild(pointsWrap);
+            row.appendChild(actions);
             listEl.appendChild(row);
         });
     } catch (e) {

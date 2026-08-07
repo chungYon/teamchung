@@ -542,6 +542,206 @@ select:focus {
     box-shadow: 0 3px 8px rgba(255, 77, 166, 0.24);
 }
 
+/* ===== 관리자: 미션 목록 관리 ===== */
+.catalog-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.catalog-count {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--primary-hover);
+    background: rgba(255, 111, 191, 0.12);
+    padding: 4px 12px;
+    border-radius: 999px;
+}
+
+.catalog-note {
+    font-size: 0.85rem;
+    color: var(--muted, #8f2d5c);
+    margin: 6px 0 16px;
+    line-height: 1.5;
+}
+
+/* 새 미션 추가 줄 — 목록과 확실히 구분되게 점선 테두리 */
+.catalog-add {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 12px 14px;
+    border: 1px dashed var(--primary);
+    border-radius: 12px;
+    background: rgba(255, 111, 191, 0.06);
+}
+
+.catalog-add-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--primary-hover);
+    flex: 0 0 auto;
+}
+
+.catalog-add input[type="text"] {
+    flex: 1 1 200px;
+    min-width: 160px;
+    margin: 0;
+}
+
+.catalog-add button {
+    width: auto;
+    margin: 0;
+    padding: 10px 22px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.catalog-add button:disabled {
+    background: #d9c7d1;
+    cursor: not-allowed;
+}
+
+.catalog-add input:disabled {
+    background: rgba(0, 0, 0, 0.04);
+    cursor: not-allowed;
+}
+
+/* 배점 입력 + 단위 */
+.catalog-points-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 0 auto;
+}
+
+.catalog-points-wrap input {
+    width: 74px;
+    margin: 0;
+    text-align: right;
+}
+
+.catalog-unit {
+    font-size: 0.85rem;
+    color: var(--muted, #8f2d5c);
+}
+
+/* 표 머리글 */
+.catalog-table-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 22px 0 6px;
+    padding: 0 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--muted, #8f2d5c);
+}
+
+.catalog-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.catalog-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid var(--glass-border);
+}
+
+.catalog-row.is-first {
+    border-color: var(--primary);
+    background: rgba(255, 111, 191, 0.08);
+}
+
+.catalog-order {
+    flex: 0 0 26px;
+    text-align: center;
+    font-weight: 800;
+    color: var(--primary-hover);
+}
+
+.catalog-col-title {
+    flex: 1 1 auto;
+    min-width: 120px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.catalog-col-title input {
+    flex: 1 1 auto;
+    margin: 0;
+}
+
+.catalog-first-tag {
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--primary);
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.catalog-col-points {
+    flex: 0 0 118px;
+    justify-content: flex-end;
+}
+
+.catalog-col-action {
+    flex: 0 0 118px;
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.catalog-col-action button {
+    width: auto;
+    margin: 0;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+.catalog-save {
+    background: #fff;
+    color: var(--primary-hover);
+    border-color: var(--primary) !important;
+}
+
+.catalog-save:hover {
+    background: var(--primary);
+    color: #fff;
+}
+
+.catalog-del {
+    background: #fff;
+    color: #d13b6b;
+    border-color: rgba(209, 59, 107, 0.5) !important;
+}
+
+.catalog-del:hover {
+    background: #d13b6b;
+    color: #fff;
+}
+
 @media (max-width: 760px) {
     .container {
         width: calc(100% - 24px);
@@ -550,6 +750,17 @@ select:focus {
     }
 
     .profile-grid { grid-template-columns: 1fr; }
+
+    .catalog-table-head { display: none; }
+
+    .catalog-row {
+        flex-wrap: wrap;
+    }
+
+    .catalog-col-points,
+    .catalog-col-action {
+        flex: 1 1 auto;
+    }
 }
 
 /* Table Styles */

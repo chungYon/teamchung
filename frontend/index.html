@@ -218,16 +218,29 @@
             <h2>미션 관리</h2>
 
             <div class="card glass-card">
-                <h3>미션 목록</h3>
+                <div class="catalog-head">
+                    <h3>미션 목록</h3>
+                    <span class="catalog-count" id="catalog-count"></span>
+                </div>
                 <p class="catalog-note" id="catalog-note"></p>
 
                 <div class="catalog-add">
-                    <input type="text" id="catalog-new-title" placeholder="새 미션 제목">
-                    <input type="number" id="catalog-new-points" value="100" min="0" step="10" title="배점">
-                    <button class="btn-primary" onclick="addCatalogMission()">추가</button>
+                    <span class="catalog-add-label">새 미션</span>
+                    <input type="text" id="catalog-new-title" placeholder="미션 제목을 입력하세요">
+                    <div class="catalog-points-wrap">
+                        <input type="number" id="catalog-new-points" value="100" min="0" step="10">
+                        <span class="catalog-unit">점</span>
+                    </div>
+                    <button class="btn-primary" id="catalog-add-btn" onclick="addCatalogMission()">추가</button>
                 </div>
                 <p id="catalog-msg" class="msg"></p>
 
+                <div class="catalog-table-head">
+                    <span class="catalog-order">#</span>
+                    <span class="catalog-col-title">미션 제목</span>
+                    <span class="catalog-col-points">배점</span>
+                    <span class="catalog-col-action">관리</span>
+                </div>
                 <div id="catalog-list" class="catalog-list"></div>
             </div>
 
