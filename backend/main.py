@@ -7,8 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import models
 import schemas
 from database import engine, get_db
-from mission_data import MISSIONS
-from mission_service import get_match_progress, get_unlocked_islands
+from mission_data import MISSIONS, REQUIRED_COUNT
+from mission_service import get_match_progress, can_complete
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -239,22 +239,21 @@ async def complete_mission(
     if not catalog:
         raise HTTPException(status_code=404, detail="존재하지 않는 미션입니다")
 
-    # 섬 순서(D->A->S->O->M) 검증: 앞 섬을 다 깨야 다음 섬 미션을 완료할 수 있다
+    # 첫 만남(0번)을 먼저 깨야 하고, 8개를 채우면 더 못 한다
     completed_ids = {
         r.mission_id
         for r in db.query(models.Mission).filter(models.Mission.match_id == match_id).all()
         if r.is_completed and r.mission_id is not None
     }
-    if catalog["island"] not in get_unlocked_islands(completed_ids):
-        raise HTTPException(status_code=400, detail="앞 섬의 미션을 먼저 완료해야 합니다")
+    allowed, reason = can_complete(mission_id, completed_ids)
+    if not allowed:
+        raise HTTPException(status_code=400, detail=reason)
 
     db_mission = (
         db.query(models.Mission)
         .filter(models.Mission.match_id == match_id, models.Mission.mission_id == mission_id)
         .first()
     )
-    if db_mission and db_mission.is_completed:
-        raise HTTPException(status_code=400, detail="이미 완료된 미션입니다")
 
     ext = os.path.splitext(photo.filename or "")[1] or ".jpg"
     filename = f"{match_id}_{mission_id}_{int(datetime.utcnow().timestamp())}{ext}"
@@ -286,7 +285,7 @@ def debug_set_progress(match_id: int, count: int, db: Session = Depends(get_db))
     if not match:
         raise HTTPException(status_code=404, detail="매칭을 찾을 수 없습니다")
 
-    count = max(0, min(count, len(MISSIONS)))
+    count = max(0, min(count, REQUIRED_COUNT))
 
     # 미션 8개 행은 항상 유지하고 완료 여부만 바꾼다.
     # (미완료 행을 지우면 미션 보드 목록이 비어 보인다)

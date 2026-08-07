@@ -1,60 +1,93 @@
-from mission_data import MISSIONS
+from mission_data import MISSIONS, ISLAND_SLOTS, REQUIRED_COUNT
 import models
 
-# 섬은 D -> A -> S -> O -> M 순서로 하나씩 열린다.
-# 앞 섬의 미션을 전부 끝내야 다음 섬이 열리고, 한 섬 안의 미션끼리는 순서가 없다.
-ISLAND_ORDER = ["D", "A", "S", "O", "M"]
+ISLAND_ORDER = [s["island"] for s in ISLAND_SLOTS]
+
+# 섬마다 "여기까지 깨면 이 섬이 끝" 하는 누적 개수
+# D:1, A:3, S:4, O:6, M:8
+_CUMULATIVE = []
+_acc = 0
+for _s in ISLAND_SLOTS:
+    _acc += _s["slots"]
+    _CUMULATIVE.append({"island": _s["island"], "slots": _s["slots"], "need": _acc})
 
 
-def get_unlocked_islands(completed_ids):
-    """앞 섬을 다 깬 만큼만 열어준다. 열린 섬 코드 집합을 돌려준다."""
-    unlocked = set()
-    for island in ISLAND_ORDER:
-        unlocked.add(island)
-        island_ids = [m["id"] for m in MISSIONS if m["island"] == island]
-        if not all(i in completed_ids for i in island_ids):
-            break  # 이 섬이 안 끝났으면 다음 섬은 잠김
-    return unlocked
+def get_island_states(completed_count):
+    """완료 개수만으로 섬 상태를 정한다. 미션은 섬에 고정되지 않는다."""
+    states = []
+    before = 0
+    current_found = False
+    for c in _CUMULATIVE:
+        if completed_count >= c["need"]:
+            state = "done"
+            done_count = c["slots"]
+        elif not current_found:
+            state = "open"
+            done_count = max(0, completed_count - before)
+            current_found = True
+        else:
+            state = "locked"
+            done_count = 0
+        states.append({
+            "island": c["island"],
+            "state": state,
+            "done_count": done_count,
+            "total": c["slots"],
+        })
+        before = c["need"]
+    return states
+
+
+def get_current_island(completed_count):
+    """지금 진행중인 섬. 다 깼으면 마지막 섬."""
+    for c in _CUMULATIVE:
+        if completed_count < c["need"]:
+            return c["island"]
+    return _CUMULATIVE[-1]["island"]
+
+
+def can_complete(mission_id, completed_ids):
+    """이 미션을 지금 완료해도 되는지. (가능여부, 안되는 이유)"""
+    if mission_id in completed_ids:
+        return False, "이미 완료한 미션입니다"
+    if len(completed_ids) >= REQUIRED_COUNT:
+        return False, "이미 모든 미션을 완료했습니다"
+    if 0 not in completed_ids and mission_id != 0:
+        return False, "첫 만남 미션을 먼저 완료해야 합니다"
+    if 0 in completed_ids and mission_id == 0:
+        return False, "이미 완료한 미션입니다"
+    return True, ""
 
 
 def get_match_progress(db, match_id):
     rows = db.query(models.Mission).filter(models.Mission.match_id == match_id).all()
     # 예전 '미션 할당' 기능으로 만든 행은 mission_id가 없다. 진행도 계산에서 제외.
     completed_ids = {r.mission_id for r in rows if r.is_completed and r.mission_id is not None}
-    unlocked = get_unlocked_islands(completed_ids)
+    completed_count = len(completed_ids)
+    finished = completed_count >= REQUIRED_COUNT
 
     missions = []
     for m in MISSIONS:
         if m["id"] in completed_ids:
             status = "done"
-        elif m["island"] in unlocked:
-            status = "open"
-        else:
+        elif finished:
+            # 8개를 채웠으면 남은 미션은 더 못 한다
             status = "locked"
+        elif 0 not in completed_ids:
+            # 첫 만남 전에는 0번만 열린다
+            status = "open" if m["id"] == 0 else "locked"
+        else:
+            status = "open"
         missions.append({**m, "status": status})
 
-    islands = []
-    for island in ISLAND_ORDER:
-        island_missions = [m for m in MISSIONS if m["island"] == island]
-        done_count = sum(1 for m in island_missions if m["id"] in completed_ids)
-        if done_count == len(island_missions):
-            state = "done"
-        elif island in unlocked:
-            state = "open"
-        else:
-            state = "locked"
-        islands.append({
-            "island": island,
-            "state": state,
-            "done_count": done_count,
-            "total": len(island_missions),
-        })
-
     return {
-        "completed_count": len(completed_ids),
-        "total": len(MISSIONS),
-        "progress": len(completed_ids) / len(MISSIONS),
+        "completed_count": completed_count,
+        "total": REQUIRED_COUNT,
+        "catalog_total": len(MISSIONS),
+        "progress": min(1.0, completed_count / REQUIRED_COUNT),
         "stage1_done": 0 in completed_ids,
-        "islands": islands,
+        "finished": finished,
+        "current_island": get_current_island(completed_count),
+        "islands": get_island_states(completed_count),
         "missions": missions,
     }

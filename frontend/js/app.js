@@ -33,17 +33,16 @@ let missionQuestElems = {};
 let openIslandKey = null;
 let lastLoadedMissions = [];
 
-const MISSION_PROGRESS_COUNT = 8;
-const MISSION_INFO = {
-    0: { island: 'D' },
-    1: { island: 'A' },
-    2: { island: 'A' },
-    3: { island: 'S' },
-    4: { island: 'O' },
-    5: { island: 'O' },
-    6: { island: 'M' },
-    7: { island: 'M' },
-};
+// 지도의 섬이 몇 칸씩 담당하는지 (backend/mission_data.py의 ISLAND_SLOTS와 같아야 함)
+// 미션 카탈로그는 10개지만, 8칸을 채우면 완주다.
+const ISLAND_SLOTS = [
+    { island: 'D', slots: 1 },
+    { island: 'A', slots: 2 },
+    { island: 'S', slots: 1 },
+    { island: 'O', slots: 2 },
+    { island: 'M', slots: 2 },
+];
+const MISSION_PROGRESS_COUNT = ISLAND_SLOTS.reduce((n, s) => n + s.slots, 0);
 
 const HOBBIES = {
     "운동": ["러닝", "헬스", "테니스", "클라이밍", "자전거"],
@@ -659,32 +658,46 @@ function updateMissionWalker(missions) {
     walker.style.top = `${point.y}%`;
 }
 
-function islandOf(mission) {
-    return mission.island || MISSION_INFO[mission.mission_id]?.island;
-}
-
-// 섬은 D -> A -> S -> O -> M 순서로 열린다.
-// 앞 섬을 전부 깨야 다음 섬이 열리고, 한 섬 안에서는 순서가 없다.
+// 미션은 섬에 고정되지 않는다. 완료 개수가 섬의 칸을 순서대로 채운다.
+// D(1칸) -> A(2칸) -> S(1칸) -> O(2칸) -> M(2칸), 합쳐서 8칸을 채우면 완주.
 function getIslandStates(missions) {
+    const completedCount = missions.filter((m) => m.is_completed).length;
     const states = {};
-    let previousCleared = true;
+    let before = 0;
+    let currentFound = false;
 
-    ISLAND_ORDER.forEach((key) => {
-        const islandMissions = missions.filter((m) => islandOf(m) === key);
-        const doneCount = islandMissions.filter((m) => m.is_completed).length;
-        const isDone = islandMissions.length > 0 && doneCount === islandMissions.length;
+    ISLAND_SLOTS.forEach(({ island, slots }) => {
+        const need = before + slots;
+        let state;
+        let doneCount;
 
-        states[key] = {
-            state: !previousCleared ? 'locked' : isDone ? 'done' : 'open',
-            doneCount,
-            total: islandMissions.length,
-            missions: islandMissions,
-        };
+        if (completedCount >= need) {
+            state = 'done';
+            doneCount = slots;
+        } else if (!currentFound) {
+            state = 'open';
+            doneCount = Math.max(0, completedCount - before);
+            currentFound = true;
+        } else {
+            state = 'locked';
+            doneCount = 0;
+        }
 
-        previousCleared = previousCleared && isDone;
+        states[island] = { state, doneCount, total: slots };
+        before = need;
     });
 
     return states;
+}
+
+// 아직 안 깬 미션 목록. 지금 열린 섬에서 이 중 아무거나 고를 수 있다.
+function getSelectableMissions(missions) {
+    const done = missions.filter((m) => m.is_completed);
+    // 첫 만남(0번)을 아직 안 깼으면 그것만 고를 수 있다
+    if (!done.some((m) => m.mission_id === 0)) {
+        return missions.filter((m) => m.mission_id === 0);
+    }
+    return missions.filter((m) => !m.is_completed);
 }
 
 function renderMissionIslandStates(missions) {
@@ -719,11 +732,11 @@ function renderMissionIslandStates(missions) {
 }
 
 // ---------- 섬 미션 목록 팝업 ----------
+// 열린 섬을 누르면 아직 안 깬 미션 전체가 뜨고, 그중 하나를 골라 인증한다.
 function openIslandModal(islandKey) {
     const states = getIslandStates(lastLoadedMissions);
     if (states[islandKey]?.state === 'locked') {
-        const prev = ISLAND_ORDER[ISLAND_ORDER.indexOf(islandKey) - 1];
-        alert(`${prev}섬의 미션을 먼저 모두 완료해야 열립니다.`);
+        alert('앞 섬의 미션을 먼저 완료해야 열립니다.');
         return;
     }
     openIslandKey = islandKey;
@@ -740,16 +753,37 @@ function renderIslandModal(states, islandKey) {
     const info = states[islandKey];
     if (!info) return;
 
+    const completedCount = lastLoadedMissions.filter((m) => m.is_completed).length;
+    const isDone = info.state === 'done';
+
     document.getElementById('islandModalTitle').textContent =
         `${islandKey}섬 · ${ISLAND_LABEL[islandKey] || ''}`;
-    document.getElementById('islandModalSub').textContent =
-        `${info.doneCount} / ${info.total} 완료`;
+
+    const subEl = document.getElementById('islandModalSub');
+    if (isDone) {
+        subEl.textContent = `이 섬은 통과했어요 (${info.doneCount}/${info.total})`;
+    } else {
+        const left = info.total - info.doneCount;
+        subEl.textContent =
+            `이 섬은 ${info.total}칸 중 ${info.doneCount}칸 완료 · ${left}개 더 하면 다음 섬으로 (전체 ${completedCount}/${MISSION_PROGRESS_COUNT})`;
+    }
 
     const listEl = document.getElementById('islandMissionList');
     listEl.innerHTML = '';
 
-    info.missions.forEach((mission) => {
-        const status = mission.is_completed ? 'done' : info.state === 'locked' ? 'locked' : 'open';
+    // 완료한 미션은 뒤로, 고를 수 있는 미션을 위로
+    const selectable = isDone ? [] : getSelectableMissions(lastLoadedMissions);
+    const selectableIds = new Set(selectable.map((m) => m.mission_id));
+    const ordered = [
+        ...selectable,
+        ...lastLoadedMissions.filter((m) => !selectableIds.has(m.mission_id)),
+    ];
+
+    ordered.forEach((mission) => {
+        const status = mission.is_completed
+            ? 'done'
+            : selectableIds.has(mission.mission_id) ? 'open' : 'locked';
+
         const item = document.createElement('div');
         item.className = `mission-item ${status}`;
 
