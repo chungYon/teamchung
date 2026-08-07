@@ -1,7 +1,7 @@
 :root {
     --primary: #ff6fbf;
     --primary-hover: #ff4da6;
-    --bg-color: #df2a7b;
+    --bg-color: #fba9ce;
     --text-color: #2b1a32;
     --glass-bg: rgba(255, 255, 255, 0.95);
     --glass-border: rgba(255, 182, 193, 0.45);
@@ -127,16 +127,14 @@ body {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-<<<<<<< HEAD
-.nav-links {
+
+<<<<<<< HEAD .nav-links {
     display: flex;
     align-items: center;
     gap: 8px;
 }
-=======
 
->>>>>>> master
-.nav-links button {
+=======>>>>>>>master .nav-links button {
     background: rgba(255, 255, 255, 0.75);
     color: var(--text-color);
     border: 1px solid var(--glass-border);
@@ -172,6 +170,7 @@ body {
     box-shadow: none;
     position: relative;
 }
+
 .nav-links .nav-logout::before {
     content: '';
     position: absolute;
@@ -180,6 +179,7 @@ body {
     height: 60%;
     border-left: 1px solid var(--glass-border);
 }
+
 .nav-links .nav-logout:hover {
     background: var(--primary);
     color: #fff;
@@ -474,21 +474,32 @@ select:focus {
     gap: 18px;
     align-items: start;
 }
-.profile-grid .card { margin-bottom: 0; }
+
+.profile-grid .card {
+    margin-bottom: 0;
+}
+
 .profile-grid #partner-info {
     border: 1px solid rgba(255, 111, 191, 0.45);
     background: rgba(255, 111, 191, 0.07);
 }
+
 .partner-name {
     font-size: 1.35rem;
     font-weight: 700;
     color: var(--primary-hover, #ff4da6);
     margin: 4px 0 12px;
 }
-.partner-wait { font-size: 0.88rem; color: var(--muted, #8f2d5c); }
+
+.partner-wait {
+    font-size: 0.88rem;
+    color: var(--muted, #8f2d5c);
+}
 
 @media (max-width: 760px) {
-    .profile-grid { grid-template-columns: 1fr; }
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Table Styles */
