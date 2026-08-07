@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -39,10 +39,12 @@ class Mission(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     match_id = Column(Integer, ForeignKey("matches.id"))
+    mission_id = Column(Integer)  # mission_data.py의 MISSIONS 카탈로그 id (0~9)
     title = Column(String)
     description = Column(String)
     is_completed = Column(Boolean, default=False)
     proof_url = Column(String, nullable=True) # Text input or image url
     points = Column(Integer, default=100)
+    completed_at = Column(DateTime, nullable=True)
 
     match = relationship("Match", back_populates="missions")
