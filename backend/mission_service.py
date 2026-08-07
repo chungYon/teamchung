@@ -60,10 +60,10 @@ def can_complete(mission_id, completed_ids):
     if len(completed_ids) >= get_required_count():
         return False, "이미 모든 미션을 완료했습니다"
 
-    ordered_ids = [mission["id"] for mission in get_missions()]
-    next_id = next((candidate for candidate in ordered_ids if candidate not in completed_ids), None)
-    if next_id is not None and mission_id != next_id:
-        return False, "앞 순서의 미션을 먼저 완료해야 합니다"
+    # 첫 미션만 순서가 고정이고, 그 뒤로는 남은 미션 중 아무거나 고를 수 있다.
+    first_id = get_first_mission_id()
+    if first_id is not None and first_id not in completed_ids and mission_id != first_id:
+        return False, "첫 만남 미션을 먼저 완료해야 합니다"
     return True, ""
 
 
@@ -82,10 +82,6 @@ def get_match_progress(db, match_id):
 
     completed_count = len(completed_ids)
     finished = required > 0 and completed_count >= required
-    next_id = next(
-        (candidate["id"] for candidate in catalog if candidate["id"] not in completed_ids),
-        None,
-    )
 
     missions = []
     for m in catalog:
@@ -96,11 +92,12 @@ def get_match_progress(db, match_id):
         elif finished:
             # 필요한 개수를 채웠으면 남은 미션은 더 못 한다
             status = "locked"
-        elif next_id == m["id"]:
-            # 완료된 미션 바로 다음 미션 하나만 연다
-            status = "open"
+        elif first_id is not None and first_id not in completed_ids:
+            # 첫 미션 전에는 그것만 열린다
+            status = "open" if m["id"] == first_id else "locked"
         else:
-            status = "locked"
+            # 첫 미션을 깬 뒤로는 남은 미션 전부 열린다 (골라서 진행)
+            status = "open"
         missions.append({**m, "status": status})
 
     return {

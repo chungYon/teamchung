@@ -661,11 +661,15 @@ function getIslandStates(missions) {
     return states;
 }
 
-// 아직 안 깬 미션 중 다음 순서의 한 개만 선택할 수 있다.
+// 첫 미션만 순서가 고정이고, 그 뒤로는 아직 안 깬 미션 중 아무거나 고를 수 있다.
 function getSelectableMissions(missions) {
     const ordered = [...missions].sort((a, b) => (a.mission_id ?? 0) - (b.mission_id ?? 0));
-    const nextMission = ordered.find((mission) => !mission.is_completed);
-    return nextMission ? [nextMission] : [];
+    const firstMission = ordered[0];
+
+    if (firstMission && !firstMission.is_completed) {
+        return [firstMission];
+    }
+    return ordered.filter((m) => !m.is_completed);
 }
 
 function renderMissionIslandStates(missions) {
