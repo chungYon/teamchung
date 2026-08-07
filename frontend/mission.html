@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>DASOM 진행도</title>
+<link rel="stylesheet" href="css/mission.css">
+</head>
+<body>
+
+<div class="page">
+
+  <!-- 임시: 이펙트 비교용. 하나 고른 뒤 이 블록 통째로 제거할 것 -->
+  <div class="effect-picker" id="effectPicker">
+    <label>이펙트 미리보기 (임시)
+      <select id="effectSelect">
+        <option value="stamp">stamp</option>
+        <option value="confetti">confetti</option>
+        <option value="neon">neon</option>
+      </select>
+    </label>
+    <button id="effectPreviewBtn">재생</button>
+  </div>
+
+  <div class="demo-auth">
+    <label>user_id <input type="number" id="demoUserId"></label>
+    <label>match_id <input type="number" id="demoMatchId"></label>
+    <button id="demoLoadBtn">내 팀 진행상황 불러오기</button>
+    <span id="demoAuthMsg"></span>
+  </div>
+
+  <div class="progress-header">
+    <div class="progress-text"><span id="completedCount">0</span> / 8</div>
+    <div class="progress-bar"><div class="progress-bar-fill" id="progressBarFill"></div></div>
+  </div>
+
+  <div class="dasom-wrap">
+    <!-- frontend/img/dasom-map.png 로 그림 파일을 넣어야 보임 -->
+    <img src="img/dasom-map.png" alt="DASOM 진행 지도" class="dasom-map-img">
+    <div class="island-overlays" id="islandOverlays"></div>
+    <div id="walker" class="walker-marker">🐾</div>
+  </div>
+
+  <div class="mission-list" id="missionList"></div>
+
+  <div class="debug-panel" id="debugPanel">
+    <label for="debugSlider">완료 개수 (테스트용, match_id 불러오면 숨김): <span id="debugValue">0</span> / 8</label>
+    <input type="range" id="debugSlider" min="0" max="8" value="0" step="1">
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal-card">
+    <h3 id="modalMissionTitle">미션 제목</h3>
+    <input type="file" id="photoInput" accept="image/*">
+    <p class="modal-msg" id="modalMsg"></p>
+    <div class="modal-actions">
+      <button id="modalCancelBtn" class="btn-secondary">취소</button>
+      <button id="modalSubmitBtn" class="btn-primary">완료 처리</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/mission.js"></script>
+</body>
+</html>
