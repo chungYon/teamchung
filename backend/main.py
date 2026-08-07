@@ -358,7 +358,7 @@ def get_admin_pending_missions(db: Session = Depends(get_db)):
             "team_name": f"{match.mentor.name} & {match.mentee.name}" if match and match.mentor and match.mentee else "알 수 없음",
             "title": m.title,
             "proof_url": m.proof_url,
-            "submitted_at": m.completed_at.isoformat() if m.completed_at else ""
+            "submitted_at": m.completed_at.isoformat() + "Z" if m.completed_at else ""
         })
     return result
 
@@ -389,9 +389,10 @@ def reject_admin_mission(mission_id: int, db: Session = Depends(get_db)):
 
 @app.get("/api/mission-photos/{filename}")
 def get_mission_photo(filename: str, user_id: int, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+    if user_id != 0:
+        user = db.query(models.User).filter(models.User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=401, detail="로그인이 필요합니다")
 
     safe_name = os.path.basename(filename)
     filepath = os.path.join(UPLOAD_DIR, safe_name)

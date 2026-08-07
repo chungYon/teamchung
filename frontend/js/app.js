@@ -1010,7 +1010,7 @@ async function fetchAdminPendingMissions() {
                 <div class="card" style="display:flex; justify-content:space-between; align-items:center; border:1px solid #f59e0b; background:rgba(245, 158, 11, 0.05); padding:15px; border-radius:12px;">
                     <div>
                         <div style="font-weight:bold; color:var(--text-color); margin-bottom:5px;">[${m.team_name}] ${m.title}</div>
-                        <a href="/uploads/${m.proof_url}" target="_blank" style="color:var(--primary); font-size:12px; text-decoration:underline;">제출된 사진 보기</a>
+                        <a href="${API_BASE_URL}/api/mission-photos/${m.proof_url}?user_id=${currentUserId}" target="_blank" style="color:var(--primary); font-size:12px; text-decoration:underline;">제출된 사진 보기</a>
                         <div style="font-size:11px; color:var(--muted); margin-top:5px;">제출일: ${new Date(m.submitted_at).toLocaleString()}</div>
                     </div>
                     <div style="display:flex; gap:10px;">
