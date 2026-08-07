@@ -10,3 +10,7 @@ __pycache__/
 
 # 미션 인증 사진 (각자 로컬에만 보관)
 backend/uploads/
+
+# 관리자가 화면에서 고치는 실행 데이터 (기본값은 mission_data.py의 DEFAULT_MISSIONS)
+backend/missions.json
+backend/settings.json

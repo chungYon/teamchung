@@ -217,15 +217,22 @@
 
         <!-- 7. 관리자 미션 관리 창 -->
         <div id="admin-mission" class="screen fade-in">
-            <h2>미션 승인 & 마감 시간 관리</h2>
+            <h2>미션 관리</h2>
+
             <div class="card glass-card">
-                <h3>마감 기한 설정 (서버 시간 기준)</h3>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-                    <input type="datetime-local" id="admin-deadline-input" style="flex:1; background:rgba(255,255,255,0.8); border:1px solid #ccc; padding:10px; border-radius:8px;">
-                    <button class="btn-primary" onclick="setDeadline()" style="width:auto; margin:0; padding:10px 20px; border-radius:8px; border:none; color:white; background:var(--primary); font-weight:bold; cursor:pointer;">기한 저장</button>
+                <h3>미션 목록</h3>
+                <p class="catalog-note" id="catalog-note"></p>
+
+                <div class="catalog-add">
+                    <input type="text" id="catalog-new-title" placeholder="새 미션 제목">
+                    <input type="number" id="catalog-new-points" value="100" min="0" step="10" title="배점">
+                    <button class="btn-primary" onclick="addCatalogMission()">추가</button>
                 </div>
-                <p id="admin-deadline-msg" class="msg"></p>
+                <p id="catalog-msg" class="msg"></p>
+
+                <div id="catalog-list" class="catalog-list"></div>
             </div>
+
             <div class="card glass-card" style="margin-top:20px;">
                 <h3>승인 대기 중인 유저의 미션 사진 목록</h3>
                 <div class="actions">

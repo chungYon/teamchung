@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import models
 import schemas
 from database import engine, get_db
-from mission_data import MISSIONS, REQUIRED_COUNT
+from mission_data import get_missions, save_missions, get_required_count, next_mission_id
 from mission_service import get_match_progress, can_complete
 from security import decrypt_value, encrypt_value
 import json
@@ -184,23 +184,42 @@ def assign_mission(mission: schemas.MissionBase, db: Session = Depends(get_db)):
     db.refresh(db_mission)
     return db_mission
 
-@app.get("/api/matches/{match_id}/missions")
-def get_match_missions(match_id: int, db: Session = Depends(get_db)):
-    missions = db.query(models.Mission).filter(models.Mission.match_id == match_id).all()
-    if not missions:
-        for m in MISSIONS:
-            db_mission = models.Mission(
+def sync_match_missions(db, match_id):
+    """카탈로그(missions.json)와 이 팀의 미션 행을 맞춘다.
+    관리자가 미션을 추가/수정/삭제하면 사용자 화면에도 그대로 반영된다."""
+    catalog = get_missions()
+    by_id = {m["id"]: m for m in catalog}
+
+    rows = db.query(models.Mission).filter(models.Mission.match_id == match_id).all()
+    seen = set()
+    for r in rows:
+        if r.mission_id is None:
+            continue  # 예전 '미션 할당'으로 만든 행은 건드리지 않는다
+        m = by_id.get(r.mission_id)
+        if not m:
+            db.delete(r)          # 카탈로그에서 지워진 미션
+            continue
+        r.title = m["title"]      # 제목/배점 수정 반영
+        r.points = m["points"]
+        seen.add(r.mission_id)
+
+    for m in catalog:             # 새로 추가된 미션
+        if m["id"] not in seen:
+            db.add(models.Mission(
                 match_id=match_id,
                 mission_id=m["id"],
                 title=m["title"],
-                description=m.get("description", m["title"]),
-                points=100,
+                description=m["title"],
+                points=m["points"],
                 is_completed=False,
-            )
-            db.add(db_mission)
-        db.commit()
-        missions = db.query(models.Mission).filter(models.Mission.match_id == match_id).all()
-    return missions
+            ))
+    db.commit()
+
+
+@app.get("/api/matches/{match_id}/missions")
+def get_match_missions(match_id: int, db: Session = Depends(get_db)):
+    sync_match_missions(db, match_id)
+    return db.query(models.Mission).filter(models.Mission.match_id == match_id).all()
 
 class MissionSubmit(schemas.BaseModel):
     proof_url: str
@@ -241,12 +260,6 @@ async def complete_mission(
     photo: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    settings = get_settings()
-    if settings.get("deadline"):
-        deadline = datetime.fromisoformat(settings["deadline"].replace("Z", "+00:00")).replace(tzinfo=None)
-        if datetime.utcnow() > deadline:
-            raise HTTPException(status_code=400, detail="마감 기한이 지나 미션을 제출할 수 없습니다.")
-
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="로그인이 필요합니다")
@@ -258,11 +271,11 @@ async def complete_mission(
     if user_id not in (match.mentor_id, match.mentee_id):
         raise HTTPException(status_code=403, detail="본인 팀의 미션만 완료할 수 있습니다")
 
-    catalog = next((m for m in MISSIONS if m["id"] == mission_id), None)
+    catalog = next((m for m in get_missions() if m["id"] == mission_id), None)
     if not catalog:
         raise HTTPException(status_code=404, detail="존재하지 않는 미션입니다")
 
-    # 첫 만남(0번)을 먼저 깨야 하고, 8개를 채우면 더 못 한다
+    # 첫 미션을 먼저 깨야 하고, 필요한 개수를 채우면 더 못 한다
     completed_ids = {
         r.mission_id
         for r in db.query(models.Mission).filter(models.Mission.match_id == match_id).all()
@@ -284,9 +297,10 @@ async def complete_mission(
         f.write(await photo.read())
 
     if not db_mission:
-        db_mission = models.Mission(match_id=match_id, mission_id=mission_id, points=100)
+        db_mission = models.Mission(match_id=match_id, mission_id=mission_id)
         db.add(db_mission)
 
+    db_mission.points = catalog["points"]
     db_mission.title = catalog["title"]
     db_mission.is_completed = False
     db_mission.proof_url = filename
@@ -306,41 +320,116 @@ def debug_set_progress(match_id: int, count: int, db: Session = Depends(get_db))
     if not match:
         raise HTTPException(status_code=404, detail="매칭을 찾을 수 없습니다")
 
-    count = max(0, min(count, REQUIRED_COUNT))
+    catalog = get_missions()
+    count = max(0, min(count, get_required_count()))
 
-    # 미션 8개 행은 항상 유지하고 완료 여부만 바꾼다.
+    # 미션 행은 항상 카탈로그 전체를 유지하고 완료 여부만 바꾼다.
     # (미완료 행을 지우면 미션 보드 목록이 비어 보인다)
     db.query(models.Mission).filter(models.Mission.match_id == match_id).delete()
-    for idx, m in enumerate(MISSIONS):
+    for idx, m in enumerate(catalog):
         completed = idx < count
         db.add(models.Mission(
             match_id=match_id,
             mission_id=m["id"],
             title=m["title"],
-            description=m.get("description", m["title"]),
+            description=m["title"],
             is_completed=completed,
-            points=100,
+            points=m["points"],
             completed_at=datetime.utcnow() if completed else None,
         ))
 
-    match.score = count * 100
+    match.score = sum(m["points"] for m in catalog[:count])
     db.commit()
 
     return get_match_progress(db, match_id)
 
-class AdminSettingsPatch(BaseModel):
-    deadline: Optional[str] = None
+# ---------- 관리자: 미션 목록 관리 ----------
+# 목록을 고치면 모든 팀의 미션 행에 그대로 반영된다 (sync_match_missions)
 
-@app.get("/api/admin/settings")
-def get_admin_settings():
-    return get_settings()
+class MissionCatalogItem(BaseModel):
+    title: str
+    points: int = 100
 
-@app.post("/api/admin/settings")
-def update_admin_settings(patch: AdminSettingsPatch):
-    data = get_settings()
-    data["deadline"] = patch.deadline
-    save_settings(data)
-    return {"message": "설정이 저장되었습니다."}
+
+def _sync_all_matches(db):
+    for m in db.query(models.Match).all():
+        sync_match_missions(db, m.id)
+
+
+@app.get("/api/admin/missions/catalog")
+def get_mission_catalog():
+    return {"missions": get_missions(), "required_count": get_required_count()}
+
+
+@app.post("/api/admin/missions/catalog")
+def add_mission_catalog(item: MissionCatalogItem, db: Session = Depends(get_db)):
+    title = item.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="미션 제목을 입력해주세요")
+
+    missions = get_missions()
+    new_id = next_mission_id()
+    missions.append({
+        "id": new_id,
+        "stage": 2,
+        "title": title,
+        "order": max((m["order"] for m in missions), default=-1) + 1,
+        "points": max(0, item.points),
+    })
+    save_missions(missions)
+    _sync_all_matches(db)
+    return {"message": "미션이 추가되었습니다", "id": new_id}
+
+
+@app.put("/api/admin/missions/catalog/{mission_id}")
+def update_mission_catalog(mission_id: int, item: MissionCatalogItem, db: Session = Depends(get_db)):
+    title = item.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="미션 제목을 입력해주세요")
+
+    missions = get_missions()
+    target = next((m for m in missions if m["id"] == mission_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="존재하지 않는 미션입니다")
+
+    target["title"] = title
+    target["points"] = max(0, item.points)
+    save_missions(missions)
+
+    # 이미 완료된 미션의 점수도 새 배점으로 맞춰야 리더보드가 일치한다
+    _sync_all_matches(db)
+    _recalc_match_scores(db)
+    return {"message": "미션이 수정되었습니다"}
+
+
+@app.delete("/api/admin/missions/catalog/{mission_id}")
+def delete_mission_catalog(mission_id: int, db: Session = Depends(get_db)):
+    missions = get_missions()
+    if not any(m["id"] == mission_id for m in missions):
+        raise HTTPException(status_code=404, detail="존재하지 않는 미션입니다")
+    if len(missions) <= 1:
+        raise HTTPException(status_code=400, detail="미션이 하나는 남아 있어야 합니다")
+
+    missions = [m for m in missions if m["id"] != mission_id]
+    for i, m in enumerate(missions):
+        m["order"] = i
+    save_missions(missions)
+
+    _sync_all_matches(db)
+    _recalc_match_scores(db)
+    return {"message": "미션이 삭제되었습니다"}
+
+
+def _recalc_match_scores(db):
+    """완료된 미션의 배점 합으로 팀 점수를 다시 계산한다."""
+    for match in db.query(models.Match).all():
+        rows = db.query(models.Mission).filter(
+            models.Mission.match_id == match.id,
+            models.Mission.is_completed == True,
+        ).all()
+        match.score = sum(r.points or 0 for r in rows)
+    db.commit()
+
 
 @app.get("/api/admin/missions/pending")
 def get_admin_pending_missions(db: Session = Depends(get_db)):

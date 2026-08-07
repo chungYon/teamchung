@@ -496,6 +496,104 @@ select:focus {
     color: var(--muted, #8f2d5c);
 }
 
+/* 관리자: 미션 목록 관리 */
+.catalog-note {
+    font-size: 0.85rem;
+    color: var(--muted, #8f2d5c);
+    margin: 0 0 14px;
+}
+
+.catalog-add {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.catalog-add input[type="text"] {
+    flex: 1 1 240px;
+    min-width: 180px;
+}
+
+.catalog-add input[type="number"] {
+    width: 90px;
+    flex: 0 0 auto;
+}
+
+.catalog-add button {
+    width: auto;
+    margin: 0;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.catalog-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.catalog-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid var(--glass-border);
+}
+
+.catalog-order {
+    width: 24px;
+    text-align: center;
+    font-weight: 700;
+    color: var(--primary-hover);
+    flex: 0 0 auto;
+}
+
+.catalog-row .catalog-title {
+    flex: 1 1 auto;
+    min-width: 120px;
+    margin: 0;
+}
+
+.catalog-row .catalog-points {
+    width: 80px;
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.catalog-unit {
+    font-size: 0.85rem;
+    color: var(--muted, #8f2d5c);
+    flex: 0 0 auto;
+}
+
+.catalog-row button {
+    width: auto;
+    margin: 0;
+    padding: 7px 12px;
+    font-size: 0.85rem;
+    flex: 0 0 auto;
+}
+
+.catalog-row .catalog-del {
+    color: #d13b6b;
+}
+
+@media (max-width: 700px) {
+    .catalog-row {
+        flex-wrap: wrap;
+    }
+}
+
 /* 왜 이 둘이 매칭됐는지 한 줄 설명 */
 .match-reason {
     margin: 0 0 14px;

@@ -208,6 +208,9 @@ function switchScreen(screenId) {
         fetchLeaderboard();
     } else if (screenId === 'users') {
         fetchUsers();
+    } else if (screenId === 'admin-mission') {
+        fetchMissionCatalog();
+        fetchAdminPendingMissions();
     }
 }
 
@@ -1023,11 +1026,6 @@ async function fetchAdminPendingMissions() {
         }
         list.innerHTML = html;
 
-        const setRes = await fetch(`${API_BASE_URL}/api/admin/settings`);
-        const settings = await setRes.json();
-        if (settings.deadline) {
-            document.getElementById('admin-deadline-input').value = settings.deadline.substring(0, 16);
-        }
     } catch (e) {
         list.innerHTML = '<div style="color:red;">목록을 불러오지 못했습니다.</div>';
     }
@@ -1057,20 +1055,120 @@ async function rejectAdminMission(id) {
     }
 }
 
-async function setDeadline() {
-    const val = document.getElementById('admin-deadline-input').value;
-    const dateStr = val ? new Date(val).toISOString() : null;
+// ---------- 관리자: 미션 목록 관리 ----------
+// 여기서 고친 내용은 모든 팀의 미션 보드와 리더보드 점수에 그대로 반영된다.
+
+function setCatalogMsg(text, isError) {
+    const el = document.getElementById('catalog-msg');
+    if (!el) return;
+    el.textContent = text;
+    el.style.color = isError ? '#ef4444' : '#34d399';
+    if (text) setTimeout(() => { el.textContent = ''; }, 3000);
+}
+
+async function fetchMissionCatalog() {
+    const listEl = document.getElementById('catalog-list');
+    if (!listEl) return;
+    listEl.innerHTML = '<div style="color:var(--muted);">불러오는 중...</div>';
+
     try {
-        const res = await fetch(`${API_BASE_URL}/api/admin/settings`, {
+        const res = await fetch(`${API_BASE_URL}/api/admin/missions/catalog`);
+        const data = await res.json();
+        const missions = data.missions || [];
+
+        document.getElementById('catalog-note').textContent =
+            `총 ${missions.length}개 중 ${data.required_count}개를 완료하면 완주입니다. `
+            + `맨 위 미션이 '첫 만남'이 되어 가장 먼저 열립니다.`;
+
+        listEl.innerHTML = '';
+        missions.forEach((m, idx) => {
+            const row = document.createElement('div');
+            row.className = 'catalog-row';
+            row.innerHTML = `
+                <span class="catalog-order">${idx + 1}</span>
+                <input type="text" class="catalog-title" value="${m.title.replace(/"/g, '&quot;')}">
+                <input type="number" class="catalog-points" value="${m.points}" min="0" step="10">
+                <span class="catalog-unit">점</span>
+                <button class="btn-secondary catalog-save">저장</button>
+                <button class="btn-secondary catalog-del">삭제</button>
+            `;
+            row.querySelector('.catalog-save').addEventListener('click', () =>
+                updateCatalogMission(m.id, row.querySelector('.catalog-title').value,
+                    row.querySelector('.catalog-points').value));
+            row.querySelector('.catalog-del').addEventListener('click', () =>
+                deleteCatalogMission(m.id, m.title));
+            listEl.appendChild(row);
+        });
+    } catch (e) {
+        listEl.innerHTML = '<div style="color:red;">미션 목록을 불러오지 못했습니다.</div>';
+    }
+}
+
+async function addCatalogMission() {
+    const titleEl = document.getElementById('catalog-new-title');
+    const pointsEl = document.getElementById('catalog-new-points');
+    const title = titleEl.value.trim();
+
+    if (!title) {
+        setCatalogMsg('미션 제목을 입력해주세요.', true);
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/admin/missions/catalog`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ deadline: dateStr })
+            body: JSON.stringify({ title, points: parseInt(pointsEl.value, 10) || 0 })
         });
-        if (res.ok) {
-            document.getElementById('admin-deadline-msg').textContent = '기한이 저장되었습니다.';
-            setTimeout(() => document.getElementById('admin-deadline-msg').textContent = '', 3000);
+        const data = await res.json();
+        if (!res.ok) {
+            setCatalogMsg(data.detail || '추가에 실패했습니다.', true);
+            return;
         }
+        titleEl.value = '';
+        pointsEl.value = 100;
+        setCatalogMsg('미션이 추가되었습니다.');
+        fetchMissionCatalog();
     } catch (e) {
-        alert('기한 변경 실패');
+        setCatalogMsg('서버 연결에 실패했습니다.', true);
+    }
+}
+
+async function updateCatalogMission(id, title, points) {
+    if (!title.trim()) {
+        setCatalogMsg('미션 제목을 입력해주세요.', true);
+        return;
+    }
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/admin/missions/catalog/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: title.trim(), points: parseInt(points, 10) || 0 })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            setCatalogMsg(data.detail || '수정에 실패했습니다.', true);
+            return;
+        }
+        setCatalogMsg('저장되었습니다. 사용자 미션 보드와 리더보드에도 반영됩니다.');
+        fetchMissionCatalog();
+    } catch (e) {
+        setCatalogMsg('서버 연결에 실패했습니다.', true);
+    }
+}
+
+async function deleteCatalogMission(id, title) {
+    if (!confirm(`'${title}' 미션을 삭제할까요?\n모든 팀의 미션 보드에서 사라집니다.`)) return;
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/admin/missions/catalog/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) {
+            setCatalogMsg(data.detail || '삭제에 실패했습니다.', true);
+            return;
+        }
+        setCatalogMsg('미션이 삭제되었습니다.');
+        fetchMissionCatalog();
+    } catch (e) {
+        setCatalogMsg('서버 연결에 실패했습니다.', true);
     }
 }

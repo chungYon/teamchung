@@ -1,5 +1,12 @@
-from mission_data import MISSIONS, ISLAND_SLOTS, REQUIRED_COUNT
+from mission_data import get_missions, get_required_count, ISLAND_SLOTS
 import models
+
+
+def get_first_mission_id():
+    """순서상 맨 앞 미션. 이걸 깨야 나머지가 열린다.
+    관리자가 목록을 바꿔도 따라가도록 id를 고정하지 않는다."""
+    missions = get_missions()
+    return missions[0]["id"] if missions else None
 
 ISLAND_ORDER = [s["island"] for s in ISLAND_SLOTS]
 
@@ -50,12 +57,12 @@ def can_complete(mission_id, completed_ids):
     """이 미션을 지금 완료해도 되는지. (가능여부, 안되는 이유)"""
     if mission_id in completed_ids:
         return False, "이미 완료한 미션입니다"
-    if len(completed_ids) >= REQUIRED_COUNT:
+    if len(completed_ids) >= get_required_count():
         return False, "이미 모든 미션을 완료했습니다"
-    if 0 not in completed_ids and mission_id != 0:
+
+    first_id = get_first_mission_id()
+    if first_id is not None and first_id not in completed_ids and mission_id != first_id:
         return False, "첫 만남 미션을 먼저 완료해야 합니다"
-    if 0 in completed_ids and mission_id == 0:
-        return False, "이미 완료한 미션입니다"
     return True, ""
 
 
@@ -68,31 +75,35 @@ def get_match_progress(db, match_id):
         r.mission_id for r in rows
         if not r.is_completed and r.mission_id is not None and r.proof_url
     }
+    catalog = get_missions()
+    required = get_required_count()
+    first_id = get_first_mission_id()
+
     completed_count = len(completed_ids)
-    finished = completed_count >= REQUIRED_COUNT
+    finished = required > 0 and completed_count >= required
 
     missions = []
-    for m in MISSIONS:
+    for m in catalog:
         if m["id"] in completed_ids:
             status = "done"
         elif m["id"] in pending_ids:
             status = "pending"
         elif finished:
-            # 8개를 채웠으면 남은 미션은 더 못 한다
+            # 필요한 개수를 채웠으면 남은 미션은 더 못 한다
             status = "locked"
-        elif 0 not in completed_ids:
-            # 첫 만남 전에는 0번만 열린다
-            status = "open" if m["id"] == 0 else "locked"
+        elif first_id is not None and first_id not in completed_ids:
+            # 첫 미션 전에는 그것만 열린다
+            status = "open" if m["id"] == first_id else "locked"
         else:
             status = "open"
         missions.append({**m, "status": status})
 
     return {
         "completed_count": completed_count,
-        "total": REQUIRED_COUNT,
-        "catalog_total": len(MISSIONS),
-        "progress": min(1.0, completed_count / REQUIRED_COUNT),
-        "stage1_done": 0 in completed_ids,
+        "total": required,
+        "catalog_total": len(catalog),
+        "progress": min(1.0, completed_count / required) if required else 0.0,
+        "stage1_done": first_id in completed_ids if first_id is not None else False,
         "finished": finished,
         "current_island": get_current_island(completed_count),
         "islands": get_island_states(completed_count),
