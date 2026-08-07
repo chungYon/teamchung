@@ -198,6 +198,12 @@ function logout() {
     document.getElementById('btn-users').style.display = 'none';
     document.getElementById('btn-admin-match').style.display = 'none';
     document.getElementById('assign-mission-admin').style.display = 'none';
+    
+    const btnRefresh = document.getElementById('btn-refresh-match');
+    if (btnRefresh) {
+        btnRefresh.innerText = "내 매칭 정보 새로고침";
+    }
+    
     switchScreen('login');
 }
 
@@ -234,6 +240,11 @@ async function login() {
             document.getElementById('btn-admin-match').style.display = isAdmin ? 'inline-block' : 'none';
             document.getElementById('assign-mission-admin').style.display = isAdmin ? 'block' : 'none';
             document.getElementById('admin-match-result').style.display = 'none';
+            
+            const btnRefresh = document.getElementById('btn-refresh-match');
+            if (btnRefresh) {
+                btnRefresh.innerText = isAdmin ? "매칭 현황 새로고침" : "내 매칭 정보 새로고침";
+            }
 
             if (!isAdmin) {
                 const userRes = await fetch(`${API_BASE_URL}/users/${currentUserId}`);
@@ -323,10 +334,63 @@ async function triggerMatching() {
         const data = await response.json();
         document.getElementById('admin-match-result').style.display = 'block';
         document.getElementById('admin-match-result').innerText = `매칭 실행 완료: ${data.message}`;
-        fetchMyMatch();
+        fetchAdminMatches();
     } catch (e) {
         document.getElementById('admin-match-result').style.display = 'block';
         document.getElementById('admin-match-result').innerText = '매칭 실행 중 오류가 발생했습니다.';
+    }
+}
+
+async function fetchAdminMatches() {
+    const infoEl = document.getElementById('match-info');
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/matches`);
+        const matches = await response.json();
+        
+        const usersResp = await fetch(`${API_BASE_URL}/api/users`);
+        const users = await usersResp.json();
+        
+        const unmatchedMentors = users.filter(u => u.is_mentor && u.match_status !== 'matched');
+        const unmatchedMentees = users.filter(u => !u.is_mentor && u.match_status !== 'matched');
+        
+        let html = `
+            <div style="background:rgba(255,255,255,0.8); padding:15px; border-radius:10px; margin-bottom:20px; border:1px solid var(--primary);">
+                <h3 style="margin-top:0; color:var(--primary);">📊 매칭 현황 요약</h3>
+                <p style="margin:5px 0; color:var(--text-color);">✅ 성사된 팀: <strong>${matches.length}팀</strong></p>
+                <p style="margin:5px 0; color:var(--text-color);">⏳ 대기 중인 멘토(재학생): <strong>${unmatchedMentors.length}명</strong>
+                   <span style="font-size:0.85rem; color:#8f2d5c;">${unmatchedMentors.length > 0 ? '(' + unmatchedMentors.map(u => u.name).join(', ') + ')' : ''}</span></p>
+                <p style="margin:5px 0; color:var(--text-color);">⏳ 대기 중인 멘티(신입생): <strong>${unmatchedMentees.length}명</strong>
+                   <span style="font-size:0.85rem; color:#8f2d5c;">${unmatchedMentees.length > 0 ? '(' + unmatchedMentees.map(u => u.name).join(', ') + ')' : ''}</span></p>
+            </div>
+        `;
+        
+        if (matches.length === 0) {
+            html += `<p>현재 성사된 매칭이 없습니다.</p>`;
+            infoEl.innerHTML = html;
+            return;
+        }
+        
+        html += `<h3>전체 매칭 결과 리스트</h3><div style="display:flex; flex-direction:column; gap:15px; margin-top:15px;">`;
+        matches.forEach(m => {
+            html += `
+                <div style="padding:15px; border-radius:10px; background:rgba(255,255,255,0.8); border:1px solid rgba(255, 182, 193, 0.55); box-shadow: 0 4px 10px rgba(255, 111, 191, 0.1);">
+                    <div style="font-size:1.1rem; font-weight:bold; margin-bottom:10px; color:var(--text-color);">
+                        🧑‍🏫 멘토 <span style="color:#a855f7;">${m.mentor_name}</span> &nbsp;❤️&nbsp; 👶 멘티 <span style="color:#3b82f6;">${m.mentee_name}</span>
+                    </div>
+                    <div style="font-size:0.95rem; color:var(--text-color); line-height:1.5;">
+                        <strong>MBTI:</strong> ${m.mentor_mbti} & ${m.mentee_mbti} 
+                        (MBTI 점수: <span style="color:#d97706; font-weight:600;">${m.mbti_score}</span>) <br>
+                        <strong>취미 총 점수:</strong> <span style="color:#2563eb; font-weight:600;">${m.hobby_score}</span> <br>
+                        <strong>최종 매칭 점수:</strong> <span style="color:#059669; font-weight:bold; font-size:1.1rem;">${m.total_score}</span>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+        infoEl.innerHTML = html;
+        
+    } catch (e) {
+        infoEl.innerHTML = `<p style="color:var(--primary);">매칭 목록을 가져오는 데 실패했습니다.</p>`;
     }
 }
 
@@ -335,8 +399,8 @@ async function fetchMyMatch() {
     const infoEl = document.getElementById('match-info');
     if (isAdmin) {
         document.getElementById('admin-match-result').style.display = 'block';
-        document.getElementById('admin-match-result').innerText = "관리자 계정입니다. 매칭 알고리즘 실행 후 결과를 확인할 수 있습니다.";
-        infoEl.innerHTML = `<p>관리자님은 팀 매칭 결과가 없습니다. 좌측에서 매칭 알고리즘을 실행해주세요.</p>`;
+        document.getElementById('admin-match-result').innerText = "관리자 계정입니다. 전체 매칭 결과를 확인합니다.";
+        fetchAdminMatches();
         return;
     }
     if (!currentUserId) return;
