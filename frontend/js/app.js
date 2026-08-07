@@ -2,6 +2,37 @@ const API_BASE_URL = 'http://localhost:8000';
 let currentUserId = null;
 let currentMatchId = null;
 
+const HOBBIES = {
+    "운동": ["러닝", "헬스", "테니스", "클라이밍", "자전거"],
+    "음식": ["요리", "맛집탐방"],
+    "게임": ["롤", "오버워치", "배그"],
+    "여행": ["국내여행", "해외여행", "캠핑"],
+    "미디어/SNS": ["인스타", "유튜브", "넷플릭스"],
+    "문화/예술": ["영화관람", "음악감상", "독서"],
+    "IT/자기계발": ["알고리즘 코딩", "시스템 구축", "외국어 회화"]
+};
+
+// 취미 체크박스 렌더링
+window.addEventListener("DOMContentLoaded", () => {
+    const container = document.getElementById('hobbies-container');
+    if(container) {
+        let html = '';
+        for(const [cat, items] of Object.entries(HOBBIES)) {
+            html += `<div style="flex: 1 1 120px;">
+                        <strong style="color:var(--primary); font-size:0.9rem;">${cat}</strong>
+                        <div style="display:flex; flex-direction:column; gap:5px; margin-top:5px; font-size:0.85rem;">`;
+            items.forEach(item => {
+                html += `<label style="display:inline-flex; align-items:center; color:#e2e8f0; font-weight:normal; cursor:pointer;">
+                            <input type="checkbox" value="${item}" class="hobby-checkbox" style="width:auto; margin-right:5px; accent-color:var(--primary);">
+                            ${item}
+                         </label>`;
+            });
+            html += `</div></div>`;
+        }
+        container.innerHTML = html;
+    }
+});
+
 async function fetchUsers() {
     try {
         const response = await fetch(`${API_BASE_URL}/api/users`);
@@ -120,7 +151,12 @@ async function register() {
     const living = document.getElementById('reg-living').value;
     const role = document.getElementById('reg-role').value === "true";
     const phone = document.getElementById('reg-phone').value;
-    const hobbies = document.getElementById('reg-hobbies').value;
+    
+    // 선택된 취미들 수집
+    const hobbies = Array.from(document.querySelectorAll('.hobby-checkbox:checked'))
+                        .map(cb => cb.value)
+                        .join(',');
+    
     const msgEl = document.getElementById('reg-msg');
 
     try {
