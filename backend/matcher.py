@@ -11,24 +11,43 @@ from typing import List
 # Each MBTI pair is classified into a compatibility category and then
 # converted to a numeric score so the matching algorithm can compare pairs.
 # Categories are intentionally coarse: best, good, neutral, and bad.
-MBTI_TYPES = {
+MBTI_ORDER = [
     "INFP", "ENFP", "INFJ", "ENFJ", "INTJ", "ENTJ", "INTP", "ENTP",
     "ISFP", "ESFP", "ISTP", "ESTP", "ISFJ", "ESFJ", "ISTJ", "ESTJ"
-}
+]
 
-COMPATIBILITY_SCORES = {
-    "best": 100,
-    "good": 75,
-    "neutral": 50,
-    "bad": 20,
+MBTI_MATRIX = [
+    [4, 4, 4, 5, 4, 5, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1],
+    [4, 4, 5, 4, 5, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1],
+    [4, 5, 4, 4, 4, 4, 4, 5, 1, 1, 1, 1, 1, 1, 1, 1],
+    [5, 4, 4, 4, 4, 4, 4, 4, 5, 1, 1, 1, 1, 1, 1, 1],
+    [4, 5, 4, 4, 4, 4, 4, 5, 3, 3, 3, 3, 2, 2, 2, 2],
+    [5, 4, 4, 4, 4, 4, 5, 4, 3, 3, 3, 3, 3, 3, 3, 3],
+    [4, 4, 4, 4, 4, 5, 4, 4, 3, 3, 3, 3, 2, 2, 2, 5],
+    [4, 4, 5, 4, 5, 4, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2],
+    [1, 1, 1, 5, 3, 3, 3, 3, 2, 2, 2, 2, 5, 5, 4, 5],
+    [1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 2, 5, 5, 5, 4],
+    [1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 2, 4, 5, 3, 5],
+    [1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 2, 5, 4, 5, 3],
+    [1, 1, 1, 1, 2, 3, 2, 2, 3, 5, 3, 5, 4, 4, 4, 4],
+    [1, 1, 1, 1, 2, 3, 2, 2, 5, 3, 5, 3, 4, 4, 4, 4],
+    [1, 1, 1, 1, 2, 3, 2, 2, 3, 5, 3, 5, 4, 4, 4, 4],
+    [1, 1, 1, 1, 2, 3, 5, 2, 5, 3, 5, 3, 4, 4, 4, 4]
+]
+
+MBTI_SCORE_MAP = {
+    5: 100,
+    4: 75,
+    3: 50,
+    2: 25,
+    1: 0,
 }
 
 
 def normalize_mbti(mbti: str) -> str:
     # Normalize an MBTI input by trimming whitespace, converting to upper case,
     # and verifying it has exactly four valid MBTI letters.
-    # Returns an empty string if the input is invalid, which signals a poor
-    # compatibility category when calculating scores.
+    # Returns an empty string if the input is invalid.
     mbti = (mbti or "").strip().upper()
     if len(mbti) != 4:
         return ""
@@ -39,42 +58,22 @@ def normalize_mbti(mbti: str) -> str:
     return mbti
 
 
-def get_mbti_category(mbti1: str, mbti2: str) -> str:
+def get_mbti_score(mbti1: str, mbti2: str) -> int:
+    # Convert the compatibility category into a numeric score for ranking
+    # using the provided MBTI matrix.
     mbti1 = normalize_mbti(mbti1)
     mbti2 = normalize_mbti(mbti2)
+    
     if not mbti1 or not mbti2:
-        return "bad"
-    if mbti1 == mbti2:
-        return "best"
-
-    same_group = mbti1[1] == mbti2[1]
-    shared_letters = sum(1 for a, b in zip(mbti1, mbti2) if a == b)
-
-    # Chart-inspired compatibility classification logic.
-    # Use the MBTI second letter group (N/S) to reflect broader similarity.
-    # Then use shared letter count to refine the category.
-    if same_group:
-        if shared_letters >= 3:
-            # Most letters match and same intuition/sensing group.
-            return "best"
-        if shared_letters == 2:
-            # Some significant overlap, usually a good match.
-            return "good"
-        return "neutral"
-
-    if shared_letters >= 3:
-        # Different S/N groups, but still enough letter overlap to be good.
-        return "good"
-    if shared_letters == 2:
-        # Moderate overlap across different groups.
-        return "neutral"
-    return "bad"
-
-
-def get_mbti_score(mbti1: str, mbti2: str) -> int:
-       # Convert the compatibility category into a numeric score for ranking.
-    category = get_mbti_category(mbti1, mbti2)
-    return COMPATIBILITY_SCORES.get(category, 20)
+        return 0
+        
+    try:
+        idx1 = MBTI_ORDER.index(mbti1)
+        idx2 = MBTI_ORDER.index(mbti2)
+        score_level = MBTI_MATRIX[idx1][idx2]
+        return MBTI_SCORE_MAP.get(score_level, 0)
+    except ValueError:
+        return 0
 
 # Calculate hobby compatibility by parsing comma-separated hobby lists.
 # Hobby strings are normalized to lowercase and split by comma.
