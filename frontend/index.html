@@ -23,6 +23,7 @@
             <button onclick="switchScreen('score')" id="btn-score" style="display:none;">리더보드</button>
             <button onclick="switchScreen('matching')" id="btn-matching" style="display:none;">매칭 현황</button>
             <button onclick="switchScreen('users')" id="btn-users" style="display:none;">회원 목록</button>
+            <button onclick="switchScreen('admin-mission')" id="btn-admin-mission" style="display:none; color:var(--primary-hover); font-weight:700;">미션 관리</button>
             <button onclick="logout()" id="btn-logout" class="nav-logout" style="display:none;">로그아웃</button>
         </div>
         <div class="logo">
@@ -212,6 +213,27 @@
                 <tbody id="users-body">
                 </tbody>
             </table>
+        </div>
+
+        <!-- 7. 관리자 미션 관리 창 -->
+        <div id="admin-mission" class="screen fade-in">
+            <h2>미션 승인 & 마감 시간 관리</h2>
+            <div class="card glass-card">
+                <h3>마감 기한 설정 (서버 시간 기준)</h3>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+                    <input type="datetime-local" id="admin-deadline-input" style="flex:1; background:rgba(255,255,255,0.8); border:1px solid #ccc; padding:10px; border-radius:8px;">
+                    <button class="btn-primary" onclick="setDeadline()" style="width:auto; margin:0; padding:10px 20px; border-radius:8px; border:none; color:white; background:var(--primary); font-weight:bold; cursor:pointer;">기한 저장</button>
+                </div>
+                <p id="admin-deadline-msg" class="msg"></p>
+            </div>
+            <div class="card glass-card" style="margin-top:20px;">
+                <h3>승인 대기 중인 유저의 미션 사진 목록</h3>
+                <div class="actions">
+                    <button class="btn-secondary" onclick="fetchAdminPendingMissions()">목록 새로고침</button>
+                </div>
+                <div id="admin-pending-list" style="display:flex; flex-direction:column; gap:15px; margin-top:10px;">
+                </div>
+            </div>
         </div>
     </div>
 
