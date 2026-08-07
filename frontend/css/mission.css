@@ -493,6 +493,42 @@ body {
     cursor: not-allowed;
 }
 
+/* 제출 후 안내 배너 (alert 대체) */
+.mission-toast {
+    position: absolute;
+    left: 50%;
+    bottom: 6%;
+    transform: translateX(-50%);
+    background: rgba(43, 26, 50, 0.92);
+    color: #fff;
+    font-size: clamp(13px, 1.6vw, 16px);
+    padding: 12px 22px;
+    border-radius: 999px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    z-index: 13;
+    pointer-events: none;
+    white-space: nowrap;
+    animation: toastIn 2.6s ease forwards;
+}
+
+@keyframes toastIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(14px);
+    }
+
+    12%,
+    80% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-8px);
+    }
+}
+
 /* 클리어 이펙트: 성학 선배 (기본값)
    사진은 원본 그대로 쓴다. 자르거나 보정하지 않는다. */
 .effect-senior {

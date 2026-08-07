@@ -860,10 +860,12 @@ async function submitMissionPhoto() {
             return;
         }
 
-        // 승인 대기 상태로 변경되므로 클리어 연출 대신 알림을 띄운다
+        // 연출을 먼저 보여주고, 승인 대기 안내는 그 뒤에 띄운다.
+        // 아직 승인 전이므로 문구는 'CLEAR!'가 아니라 '제출 완료!'
         closeMissionSubmit();
         closeIslandModal();
-        alert('미션 승인 요청이 전송되었습니다. 관리자의 승인을 기다려주세요.');
+        await playMissionClearEffect('제출 완료!');
+        showMissionToast('관리자 승인을 기다려주세요');
         fetchMissions();
     } catch (e) {
         msgEl.textContent = '서버 연결에 실패했습니다.';
@@ -874,14 +876,14 @@ async function submitMissionPhoto() {
 
 // ---------- 클리어 연출 ----------
 // 새 이펙트는 함수 하나 만들어서 EFFECTS에 등록하면 끝난다.
-// 시그니처는 (wrap) => HTMLElement — 지도 위에 붙일 요소를 돌려주면 된다.
+// 시그니처는 (wrap, label) => HTMLElement — 지도 위에 붙일 요소를 돌려주면 된다.
 // 지우는 건 playMissionClearEffect가 알아서 한다.
 const CLEAR_EFFECT = 'senior';   // 'senior' | 'stamp' | 'confetti' | 'neon'
 const CLEAR_EFFECT_MS = 1800;    // 연출 길이. CSS 애니메이션 길이와 맞출 것
 
 const EFFECTS = {
     // 성학 선배가 지도를 덮친다 (사진 원본 그대로)
-    senior(wrap) {
+    senior(wrap, label) {
         const layer = document.createElement('div');
         layer.className = 'effect-senior';
 
@@ -891,17 +893,17 @@ const EFFECTS = {
 
         const text = document.createElement('div');
         text.className = 'effect-senior-text';
-        text.textContent = 'CLEAR!';
+        text.textContent = label;
 
         layer.appendChild(img);
         layer.appendChild(text);
         return layer;
     },
 
-    stamp() {
+    stamp(wrap, label) {
         const el = document.createElement('div');
         el.className = 'effect-stamp';
-        el.textContent = 'CLEAR!';
+        el.textContent = label;
         return el;
     },
 
@@ -934,7 +936,7 @@ const EFFECTS = {
     },
 };
 
-function playMissionClearEffect() {
+function playMissionClearEffect(label = 'CLEAR!') {
     return new Promise((resolve) => {
         const wrap = document.querySelector('#mission .dasom-wrap');
         const make = EFFECTS[CLEAR_EFFECT] || EFFECTS.stamp;
@@ -942,13 +944,24 @@ function playMissionClearEffect() {
             resolve();
             return;
         }
-        const el = make(wrap);
+        const el = make(wrap, label);
         wrap.appendChild(el);
         setTimeout(() => {
             el.remove();
             resolve();
         }, CLEAR_EFFECT_MS);
     });
+}
+
+// alert는 시연 중 화면을 가리고 클릭을 요구해서, 지도 위 배너로 대체
+function showMissionToast(text) {
+    const wrap = document.querySelector('#mission .dasom-wrap');
+    if (!wrap) return;
+    const el = document.createElement('div');
+    el.className = 'mission-toast';
+    el.textContent = text;
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), 2600);
 }
 
 // 5. 리더보드
